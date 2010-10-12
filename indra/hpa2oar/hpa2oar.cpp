@@ -49,6 +49,8 @@ int main(int argv,char * argc[])
 	LLError::initForApplication(".");
 	gDirUtilp->initAppDirs("hpa2oar",""); // path search is broken, if the pp_read_only_data_dir is not set to something searches fail
 
+	sep = gDirUtilp->getDirDelimiter();
+
 	// ensure converter dies before ll_cleanup_apr() is called
 	{
 		hpa_converter converter;
@@ -114,14 +116,14 @@ void hpa_converter::create_directory_structure()
 	LLFile::mkdir(outputPath, 0755);
 
 	//We don't actually need to do OAR 0.2 right now, just create an OAR 0.1 dir structure
-	LLFile::mkdir(outputPath + "/assets", 0755);
-	LLFile::mkdir(outputPath + "/objects", 0755);
-	LLFile::mkdir(outputPath + "/terrains", 0755);
+	LLFile::mkdir(outputPath + sep + "assets", 0755);
+	LLFile::mkdir(outputPath + sep + "objects", 0755);
+	LLFile::mkdir(outputPath + sep + "terrains", 0755);
 }
 
 void hpa_converter::copy_all_assets()
 {
-	std::string hpa_basedir = gDirUtilp->getDirName(path) + "/";
+	std::string hpa_basedir = gDirUtilp->getDirName(path) + sep;
 	copy_assets_from(hpa_basedir + "textures", "*.j2c");
 	copy_assets_from(hpa_basedir + "sculptmaps", "*.j2c");
 	copy_assets_from(hpa_basedir + "inventory", "*");
@@ -132,7 +134,7 @@ void hpa_converter::copy_assets_from(std::string asset_path, std::string mask)
 	BOOL found = TRUE;
 	std::string fname;
 
-	std::string asset_dir = outputPath + "/assets/";
+	std::string asset_dir = outputPath + sep + "assets" + sep;
 
 	while(found)// for every directory
 	{

@@ -45,6 +45,8 @@ protected:
 
 	LLSD mOARFileContents;
 
+	std::string sep;
+
 	U32 assets_moved;
 	U32 objects_processed;
 };
