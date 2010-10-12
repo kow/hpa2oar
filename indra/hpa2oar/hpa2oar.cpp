@@ -34,6 +34,9 @@
 #include "lldir.h"
 #include "llapr.h"
 
+#include <iostream>
+#include <fstream>
+
 #include "hpa2oar.h"
 
 #ifndef LL_WINDOWS
@@ -150,11 +153,21 @@ void hpa_converter::copy_assets_from(std::string source_path, std::string mask)
 				std::string new_fname = LLAssetTools::HPAtoOARName(curr_name);
 
 				//check if we know about this asset type yet
+
+				std::cout << "=";
+
 				if(!new_fname.empty())
 				{
 					std::string new_path = oar_asset_path + new_fname;
 					//copy the file to output dir
-					if(!LLAssetTools::copyFile(full_path, new_path))
+					std::ifstream f1 (full_path.c_str(), std::fstream::binary);
+					std::ofstream f2 (new_path.c_str(), std::fstream::trunc|std::fstream::binary);
+					f2 << f1.rdbuf ();
+
+					f2.close();
+					f1.close();
+
+					if(!true)
 						llwarns << "Failed to copy " << full_path << " to " << new_path << llendl;
 				}
 				else
@@ -168,6 +181,8 @@ void hpa_converter::copy_assets_from(std::string source_path, std::string mask)
 			}
 		}
 	}
+
+	std::cout << std::endl;
 }
 
 //rewritten convenience function used in the code from imprudence's importer
@@ -953,7 +968,6 @@ LLSD hpa_converter::parse_hpa_object(LLXmlTreeNode* prim)
 	return prim_llsd;
 }
 
-
 ///////////////////////
 //asset handling code//
 ///////////////////////
@@ -1022,22 +1036,4 @@ std::string LLAssetTools::HPAtoOARName(std::string src_filename)
 
 	llwarns << "For " << src_filename << ": This asset type isn't supported yet." << llendl;
 	return std::string("");
-}
-
-BOOL LLAssetTools::copyFile(std::string src_filename, std::string dst_filename)
-{
-	S32 src_size;
-	LLAPRFile src_fp;
-	src_fp.open(src_filename, LL_APR_RB, LLAPRFile::sAPRFilePoolp, &src_size);
-	if(!src_fp.getFileHandle()) return FALSE;
-	LLAPRFile dst_fp;
-	dst_fp.open(dst_filename, LL_APR_WB, LLAPRFile::sAPRFilePoolp);
-	if(!dst_fp.getFileHandle()) return FALSE;
-	char* buffer = new char[src_size + 1];
-	src_fp.read(buffer, src_size);
-	dst_fp.write(buffer, src_size);
-	src_fp.close();
-	dst_fp.close();
-	delete[] buffer;
-	return TRUE;
 }

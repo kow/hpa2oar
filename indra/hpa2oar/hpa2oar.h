@@ -57,7 +57,6 @@ class LLAssetTools
 public:
 	static LLAssetType::EType typefromExt(std::string src_filename);
 	static std::string HPAtoOARName(std::string src_filename);
-	static BOOL copyFile(std::string src_filename, std::string dest_filename);
 };
 
 //enums from llpanelobject
