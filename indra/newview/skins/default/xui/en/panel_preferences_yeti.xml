@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<panel
+ border="true"
+ follows="all"
+ height="408"
+ label="Yeti"
+ layout="topleft"
+ left="102"
+ name="yeti"
+ top="1"
+ width="517">
+ <text type="string" 
+ length="1" 
+ bg_visible="false" 
+ border_drop_shadow_visible="false" 
+ border_visible="false"
+ drop_shadow_visible="true" enabled="true" follows="left|top"
+			     font="SansSerifSmall" h_pad="0" halign="left" height="10" left="12"
+			     mouse_opaque="false" name="text_box" v_pad="0" width="500">
+				IP Spoofing Protection (0 being off, 3 being highest, anything higher than 1 may bluescreen Windows in tcpip.sys)
+			</text>
+    <slider
+     can_edit_text="true"
+     control_name="SpoofProtectionLevel"
+     decimal_digits="0"
+     follows="left|top"
+     height="16"
+     increment="1"
+     initial_value="0"
+     layout="topleft"
+     label_width="100"
+     label="Protection Level"
+     left_pad="30"
+	 left="10"
+     max_val="3"
+     min_val="0"
+	 top_delta="20"
+     name="ip_prot_slider"
+     show_text="true"
+     width="400" />
+	 <check_box
+     control_name="SpoofProtectionAlerts"
+     follows="left|top"
+     height="16"
+     label="Enabled Alerts"
+     layout="topleft"
+     left="78"
+     top_pad="6"
+     name="enable_spoof_alerts"
+     width="150" />
+</panel>

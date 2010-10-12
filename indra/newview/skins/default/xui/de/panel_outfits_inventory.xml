@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<panel label="Sonstiges" name="Outfits">
+	<panel.string name="wear_outfit_tooltip">
+		Ausgewähltes Outfit tragen
+	</panel.string>
+	<panel.string name="wear_items_tooltip">
+		Ausgewählte Objekte tragen
+	</panel.string>
+	<tab_container name="appearance_tabs">
+		<panel label="MEINE OUTFITS" name="outfitslist_tab"/>
+		<panel label="AKTUELLES OUTFIT" name="cof_tab"/>
+	</tab_container>
+	<panel name="bottom_panel">
+		<button label="Speichern unter" name="save_btn"/>
+		<button label="Anziehen" name="wear_btn" tool_tip="Ausgewähltes Outfit tragen"/>
+	</panel>
+</panel>

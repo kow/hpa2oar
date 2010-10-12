@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<panel label="Rzeczy" name="Outfits">
+	<panel.string name="wear_outfit_tooltip">
+		Załóż zaznaczony strój
+	</panel.string>
+	<panel.string name="wear_items_tooltip">
+		Załóż wybrane obiekty
+	</panel.string>
+	<tab_container name="appearance_tabs">
+		<panel label="MOJE UBRANIA" name="outfitslist_tab"/>
+		<panel label="ZAŁOŻONE" name="cof_tab"/>
+	</tab_container>
+	<panel name="bottom_panel">
+		<button label="Zapisz jako" name="save_btn"/>
+		<button label="Ubierz" name="wear_btn" tool_tip="Ubierz wybrany obiekt"/>
+	</panel>
+</panel>
