@@ -151,7 +151,7 @@ void hpa_converter::copy_assets_from(std::string asset_path, std::string mask)
 					std::string new_path = asset_dir + new_fname;
 					//copy the file to output dir
 					if(!LLAssetTools::copyFile(fullpath, new_path))
-						llwarns << "Failed to copy " << fpath << " to " << new_fpath << llendl;
+						llwarns << "Failed to copy " << fpath << " to " << new_path << llendl;
 				}
 			}
 		}
