@@ -45,6 +45,7 @@ protected:
 	void create_directory_structure();
 	void copy_all_assets();
 	void copy_assets_from(std::string asset_path, std::string mask);
+	void save_oar_objects();
 
 	LLSD mOARFileContents;
 
