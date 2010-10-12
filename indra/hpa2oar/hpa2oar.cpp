@@ -129,23 +129,25 @@ void hpa_converter::copy_all_assets()
 	copy_assets_from(hpa_basedir + "inventory", "*");
 }
 
-void hpa_converter::copy_assets_from(std::string asset_path, std::string mask)
+void hpa_converter::copy_assets_from(std::string source_path, std::string mask)
 {
 	BOOL found = TRUE;
-	std::string fname;
+	std::string curr_name;
 
-	printinfo("copying from " + asset_path);
+	source_path += sep;
+
+	printinfo("copying from " + source_path);
 
 	std::string oar_asset_path = outputPath + sep + "assets" + sep;
 
 	while(found)// for every directory
 	{
-		if((found = gDirUtilp->getNextFileInDir(asset_path,mask, fname, FALSE)))
+		if((found = gDirUtilp->getNextFileInDir(source_path,mask, curr_name, FALSE)))
 		{
-			std::string full_path=asset_path+fname;
+			std::string full_path=source_path + curr_name;
 			if(LLFile::isfile(full_path))
 			{
-				std::string new_fname = LLAssetTools::HPAtoOARName(fname);
+				std::string new_fname = LLAssetTools::HPAtoOARName(curr_name);
 
 				//check if we know about this asset type yet
 				if(!new_fname.empty())
@@ -155,6 +157,14 @@ void hpa_converter::copy_assets_from(std::string asset_path, std::string mask)
 					if(!LLAssetTools::copyFile(full_path, new_path))
 						llwarns << "Failed to copy " << full_path << " to " << new_path << llendl;
 				}
+				else
+				{
+					printinfo("Requested to copy unsupported asset");
+				}
+			}
+			else
+			{
+				printinfo("This... doesn't exist?");
 			}
 		}
 	}
