@@ -1009,6 +1009,9 @@ std::string LLAssetTools::HPAtoOARName(std::string src_filename)
 		return std::string("");
 		break;
 	}
+
+	//should never get here, but it's required.
+	return std::string("");
 }
 
 BOOL LLAssetTools::copyFile(std::string src_filename, std::string dst_filename)
