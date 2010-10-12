@@ -21,7 +21,6 @@ include_directories(
     )
 
 set(HPA2OAR_SOURCE_FILES
-	asset_tools.cpp
 
     hpa2oar.cpp
     )
@@ -29,7 +28,6 @@ set(HPA2OAR_SOURCE_FILES
 set(HPA2OAR_HEADER_FILES
     CMakeLists.txt
 
-	asset_tools.h
     hpa2oar.h
     )
 

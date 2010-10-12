@@ -31,7 +31,8 @@
 #include "llsdserialize.h"
 #include "llsdserialize_xml.h"
 
-#include "asset_tools.h"
+#include "lldir.h"
+#include "llapr.h"
 
 #include "hpa2oar.h"
 
@@ -49,12 +50,11 @@ int main(int argv,char * argc[])
 	LLError::initForApplication(".");
 	gDirUtilp->initAppDirs("hpa2oar",""); // path search is broken, if the pp_read_only_data_dir is not set to something searches fail
 
-	sep = gDirUtilp->getDirDelimiter();
-
 	// ensure converter dies before ll_cleanup_apr() is called
 	{
 		hpa_converter converter;
 
+		converter.sep = gDirUtilp->getDirDelimiter();
 		if(argv>2)
 		{
 			converter.path=std::string(argc[1]);
@@ -108,7 +108,7 @@ void hpa_converter::run()
 	create_directory_structure();
 
 	printinfo("Copying assets");
-	copy_assets();
+	copy_all_assets();
 }
 
 void hpa_converter::create_directory_structure()
@@ -140,8 +140,8 @@ void hpa_converter::copy_assets_from(std::string asset_path, std::string mask)
 	{
 		if((found = gDirUtilp->getNextFileInDir(asset_path,mask, fname, FALSE)))
 		{
-			std::string fullpath=asset_path+fname;
-			if(LLFile::isfile(fullpath))
+			std::string full_path=asset_path+fname;
+			if(LLFile::isfile(full_path))
 			{
 				std::string new_fname = LLAssetTools::HPAtoOARName(fname);
 
@@ -150,8 +150,8 @@ void hpa_converter::copy_assets_from(std::string asset_path, std::string mask)
 				{
 					std::string new_path = asset_dir + new_fname;
 					//copy the file to output dir
-					if(!LLAssetTools::copyFile(fullpath, new_path))
-						llwarns << "Failed to copy " << fpath << " to " << new_path << llendl;
+					if(!LLAssetTools::copyFile(full_path, new_path))
+						llwarns << "Failed to copy " << full_path << " to " << new_path << llendl;
 				}
 			}
 		}
@@ -939,4 +939,92 @@ LLSD hpa_converter::parse_hpa_object(LLXmlTreeNode* prim)
 			prim_llsd["volume"] = volume_params.asLLSD();
 	}
 	return prim_llsd;
+}
+
+
+///////////////////////
+//asset handling code//
+///////////////////////
+
+//this uses the extensions as used by SLPE and may not be correct for the HPA exporter.
+LLAssetType::EType LLAssetTools::typefromExt(std::string src_filename)
+{
+	std::string exten = gDirUtilp->getExtension(src_filename);
+	if (exten.empty())
+		return LLAssetType::AT_NONE;
+
+	if(exten == "jp2" || exten == "j2k" || exten == "j2c" || exten == "texture")
+	{
+		return LLAssetType::AT_TEXTURE;
+	}
+	else if(exten == "notecard")
+	{
+		return LLAssetType::AT_NOTECARD;
+	}
+	else if(exten == "lsl" || exten == "lsltext")
+	{
+		return LLAssetType::AT_LSL_TEXT;
+	}
+	/* BELOW ARE UNTESTED */
+	else if(exten == "wav")
+	{
+		return LLAssetType::AT_SOUND;
+	}
+	else if(exten == "ogg")
+	{
+		return LLAssetType::AT_SOUND;
+	}
+	else if (exten == "animatn")
+	{
+		return LLAssetType::AT_ANIMATION;
+	}
+	else if(exten == "gesture")
+	{
+		return LLAssetType::AT_GESTURE;
+	}
+	else
+	{
+		llwarns << "Unhandled extension" << llendl;
+		return LLAssetType::AT_NONE;
+	}
+}
+
+std::string LLAssetTools::HPAtoOARName(std::string src_filename)
+{
+	LLAssetType::EType file_type = typefromExt(src_filename);
+	std::string base_filename = gDirUtilp->getBaseFileName(src_filename, true);
+
+	if(file_type == LLAssetType::AT_NONE) return std::string("");
+
+	switch(file_type)
+	{
+	case LLAssetType::AT_TEXTURE:
+		return base_filename + "_texture.jp2";
+	case LLAssetType::AT_NOTECARD:
+		return base_filename + "_notecard.txt";
+	case LLAssetType::AT_LSL_TEXT:
+		return base_filename + "_script.lsl";
+	default:
+		llwarns << "For " << src_filename << ": This asset type isn't supported yet." << llendl;
+		return std::string("");
+		break;
+	}
+}
+
+BOOL LLAssetTools::copyFile(std::string src_filename, std::string dst_filename)
+{
+	S32 src_size;
+	LLAPRFile src_fp;
+	src_fp.open(src_filename, LL_APR_RB, LLAPRFile::sAPRFilePoolp, &src_size);
+	if(!src_fp.getFileHandle()) return FALSE;
+	LLAPRFile dst_fp;
+	dst_fp.open(dst_filename, LL_APR_WB, LLAPRFile::sAPRFilePoolp);
+	if(!dst_fp.getFileHandle()) return FALSE;
+	char* buffer = new char[src_size + 1];
+	src_fp.read(buffer, src_size);
+	dst_fp.write(buffer, src_size);
+	src_fp.close();
+	dst_fp.close();
+	delete[] buffer;
+	return TRUE;
 }

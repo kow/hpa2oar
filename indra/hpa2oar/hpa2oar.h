@@ -21,6 +21,7 @@
 #include <llcommon.h>
 #include "llthread.h"
 #include "llxmltree.h"
+#include "llassettype.h"
 
 class hpa_converter : public LLThread
 {
@@ -32,6 +33,8 @@ class hpa_converter : public LLThread
 
 	std::string path;
 	std::string outputPath;
+
+	std::string sep;
 
 protected:
 	void load_hpa(std::string hpa_path);
@@ -45,10 +48,16 @@ protected:
 
 	LLSD mOARFileContents;
 
-	std::string sep;
-
 	U32 assets_moved;
 	U32 objects_processed;
+};
+
+class LLAssetTools
+{
+public:
+	static LLAssetType::EType typefromExt(std::string src_filename);
+	static std::string HPAtoOARName(std::string src_filename);
+	static BOOL copyFile(std::string src_filename, std::string dest_filename);
 };
 
 //enums from llpanelobject
