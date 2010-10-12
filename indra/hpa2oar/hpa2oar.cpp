@@ -70,7 +70,7 @@ int main(int argv,char * argc[])
 		}
 
 		if(!gDirUtilp->fileExists(converter.path))
-			llerrs << "HPA path provided doesn't exist"<<llendl;
+			llerrs << "\"" << converter.path << "\" doesn't exist"<<llendl;
 
 		if(gDirUtilp->fileExists(converter.outputPath))
 			llerrs << "Output path exists!" << llendl;
@@ -134,7 +134,9 @@ void hpa_converter::copy_assets_from(std::string asset_path, std::string mask)
 	BOOL found = TRUE;
 	std::string fname;
 
-	std::string asset_dir = outputPath + sep + "assets" + sep;
+	printinfo("copying from " + asset_path);
+
+	std::string oar_asset_path = outputPath + sep + "assets" + sep;
 
 	while(found)// for every directory
 	{
@@ -148,7 +150,7 @@ void hpa_converter::copy_assets_from(std::string asset_path, std::string mask)
 				//check if we know about this asset type yet
 				if(!new_fname.empty())
 				{
-					std::string new_path = asset_dir + new_fname;
+					std::string new_path = oar_asset_path + new_fname;
 					//copy the file to output dir
 					if(!LLAssetTools::copyFile(full_path, new_path))
 						llwarns << "Failed to copy " << full_path << " to " << new_path << llendl;
@@ -1005,12 +1007,10 @@ std::string LLAssetTools::HPAtoOARName(std::string src_filename)
 	case LLAssetType::AT_LSL_TEXT:
 		return base_filename + "_script.lsl";
 	default:
-		llwarns << "For " << src_filename << ": This asset type isn't supported yet." << llendl;
-		return std::string("");
 		break;
 	}
 
-	//should never get here, but it's required.
+	llwarns << "For " << src_filename << ": This asset type isn't supported yet." << llendl;
 	return std::string("");
 }
 
