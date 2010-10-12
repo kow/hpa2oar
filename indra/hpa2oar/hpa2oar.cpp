@@ -335,7 +335,7 @@ LLSD hpa_converter::parse_hpa_object(LLXmlTreeNode* prim)
 		pcode = LL_PCODE_LEGACY_GRASS;
 	else {
 		printinfo("ERROR INVALID OBJECT, skipping.");
-		return false;
+		return LLSD();
 	}
 
 	if (is_object)
