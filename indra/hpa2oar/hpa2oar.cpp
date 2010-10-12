@@ -27,6 +27,7 @@
 #include "llprimitive.h"
 #include "time.h"
 #include "llerrorcontrol.h"
+#include "llxmlnode.h"
 
 #include "llsdserialize.h"
 #include "llsdserialize_xml.h"
@@ -42,6 +43,7 @@
 #endif
 
 using namespace LLError;
+using namespace std;
 
 int main(int argv,char * argc[])
 {
@@ -109,6 +111,10 @@ void hpa_converter::run()
 
 	printinfo("Copying assets");
 	copy_all_assets();
+	load_hpa(path);
+	printinfo(llformat("Loaded %u linksets.",mOARFileContents.size()));
+	save_oar_objects();
+	
 }
 
 void hpa_converter::create_directory_structure()
@@ -127,6 +133,576 @@ void hpa_converter::copy_all_assets()
 	copy_assets_from(hpa_basedir + "textures", "*.j2c");
 	copy_assets_from(hpa_basedir + "sculptmaps", "*.j2c");
 	copy_assets_from(hpa_basedir + "inventory", "*");
+}
+
+void hpa_converter::save_oar_objects()
+{
+	//LLSD to HPA converter from exporttracker.cpp
+
+	LLXMLNode *project_xml = new LLXMLNode("project", FALSE);
+														
+	project_xml->createChild("schema", FALSE)->setValue("1.0");
+	//project_xml->createChild("date", FALSE)->setValue(LLLogChat::timestamp(1));
+
+	project_xml->createChild("platform", FALSE)->setValue("Second Life");
+	std::vector<std::string> uris;
+
+	LLXMLNode *group_xml;
+	group_xml = new LLXMLNode("group",FALSE);
+
+	//cmdline_printchat("Attempting to output " + llformat("%u", data.size()) + " Objects.");
+
+	//std::list<LLSD *>::iterator iter=mOARFileContents.begin();
+	//for(;iter!=processed_prims.end();iter++)
+	for(LLSD::array_iterator iter = mOARFileContents.beginArray();
+		iter != mOARFileContents.endArray();
+		++iter)
+	{	// for each object
+			
+		LLXMLNode *linkset_xml = new LLXMLNode("linkset", FALSE);
+		LLSD plsd=(*iter);
+		//llwarns<<LLSD::dump(*plsd)<<llendl;
+		for(LLSD::array_iterator link_itr = plsd.beginArray();
+			link_itr != plsd.endArray();
+			++link_itr)
+		{ 
+				LLSD prim = (*link_itr);
+				
+				std::string selected_item	= "box";
+				F32 scale_x=1.f, scale_y=1.f;
+			
+				LLVolumeParams volume_params;
+				volume_params.fromLLSD(prim["volume"]);
+				// Volume type
+				U8 path = volume_params.getPathParams().getCurveType();
+				U8 profile_and_hole = volume_params.getProfileParams().getCurveType();
+				U8 profile	= profile_and_hole & LL_PCODE_PROFILE_MASK;
+				U8 hole		= profile_and_hole & LL_PCODE_HOLE_MASK;
+				
+				// Scale goes first so we can differentiate between a sphere and a torus,
+				// which have the same profile and path types.
+				// Scale
+				scale_x = volume_params.getRatioX();
+				scale_y = volume_params.getRatioY();
+				BOOL linear_path = (path == LL_PCODE_PATH_LINE) || (path == LL_PCODE_PATH_FLEXIBLE);
+				if ( linear_path && profile == LL_PCODE_PROFILE_CIRCLE )
+				{
+					selected_item = "cylinder";
+				}
+				else if ( linear_path && profile == LL_PCODE_PROFILE_SQUARE )
+				{
+					selected_item = "box";
+				}
+				else if ( linear_path && profile == LL_PCODE_PROFILE_ISOTRI )
+				{
+					selected_item = "prism";
+				}
+				else if ( linear_path && profile == LL_PCODE_PROFILE_EQUALTRI )
+				{
+					selected_item = "prism";
+				}
+				else if ( linear_path && profile == LL_PCODE_PROFILE_RIGHTTRI )
+				{
+					selected_item = "prism";
+				}
+				else if (path == LL_PCODE_PATH_FLEXIBLE) // shouldn't happen
+				{
+					selected_item = "cylinder"; // reasonable default
+				}
+				else if ( path == LL_PCODE_PATH_CIRCLE && profile == LL_PCODE_PROFILE_CIRCLE && scale_y > 0.75f)
+				{
+					selected_item = "sphere";
+				}
+				else if ( path == LL_PCODE_PATH_CIRCLE && profile == LL_PCODE_PROFILE_CIRCLE && scale_y <= 0.75f)
+				{
+					selected_item = "torus";
+				}
+				else if ( path == LL_PCODE_PATH_CIRCLE && profile == LL_PCODE_PROFILE_CIRCLE_HALF)
+				{
+					selected_item = "sphere";
+				}
+				else if ( path == LL_PCODE_PATH_CIRCLE2 && profile == LL_PCODE_PROFILE_CIRCLE )
+				{
+					// Spirals aren't supported.  Make it into a sphere.  JC
+					selected_item = "sphere";
+				}
+				else if ( path == LL_PCODE_PATH_CIRCLE && profile == LL_PCODE_PROFILE_EQUALTRI )
+				{
+					selected_item = "ring";
+				}
+				else if ( path == LL_PCODE_PATH_CIRCLE && profile == LL_PCODE_PROFILE_SQUARE && scale_y <= 0.75f)
+				{
+					selected_item = "tube";
+				}
+				else
+				{
+					llinfos << "Unknown path " << (S32) path << " profile " << (S32) profile << " in getState" << llendl;
+					selected_item = "box";
+				}
+				// Create an LLSD object that represents this prim. It will be injected in to the overall LLSD
+				// tree structure
+				LLXMLNode *prim_xml;
+				LLPCode pcode = prim["pcode"].asInteger();
+				// Sculpt
+				if (prim.has("sculpt"))
+					prim_xml = new LLXMLNode("sculpt", FALSE);
+				else if (pcode == LL_PCODE_LEGACY_GRASS)
+				{
+					prim_xml = new LLXMLNode("grass", FALSE);
+					LLXMLNodePtr shadow_xml = prim_xml->createChild("type", FALSE);
+					shadow_xml->createChild("val", TRUE)->setValue(prim["state"]);
+				}
+				else if (pcode == LL_PCODE_LEGACY_TREE)
+				{
+					prim_xml = new LLXMLNode("tree", FALSE);
+					LLXMLNodePtr shadow_xml = prim_xml->createChild("type", FALSE);
+					shadow_xml->createChild("val", TRUE)->setValue(prim["state"]);
+				}
+				else
+					prim_xml = new LLXMLNode(selected_item.c_str(), FALSE);
+				//OAR FIXME!!!
+
+				/*
+				//Properties
+				
+				LLSD * props=received_properties[prim["id"]];
+
+				if(props!=NULL)
+				{
+					prim_xml->createChild("name", FALSE)->setStringValue(std::string((*props)["name"]));
+					prim_xml->createChild("description", FALSE)->setStringValue(std::string((*props)["description"]));
+					prim_xml->createChild("uuid",FALSE)->setValue(prim["id"].asString());
+					
+					//All done with properties?
+					free(props);
+					received_properties.erase(prim["id"]);
+				} */
+				//OAR FIXME!!
+				/*
+				// Transforms		
+				LLXMLNodePtr position_xml = prim_xml->createChild("position", FALSE);
+				LLVector3 position;
+				position.setVec(ll_vector3d_from_sd(prim["position"]));
+				position_xml->createChild("x", TRUE)->setValue(llformat("%.5f", position.mV[VX]));
+				position_xml->createChild("y", TRUE)->setValue(llformat("%.5f", position.mV[VY]));
+				position_xml->createChild("z", TRUE)->setValue(llformat("%.5f", position.mV[VZ]));
+				LLXMLNodePtr scale_xml = prim_xml->createChild("size", FALSE);
+				LLVector3 scale = ll_vector3_from_sd(prim["scale"]);
+				scale_xml->createChild("x", TRUE)->setValue(llformat("%.5f", scale.mV[VX]));
+				scale_xml->createChild("y", TRUE)->setValue(llformat("%.5f", scale.mV[VY]));
+				scale_xml->createChild("z", TRUE)->setValue(llformat("%.5f", scale.mV[VZ]));
+				LLXMLNodePtr rotation_xml = prim_xml->createChild("rotation", FALSE);
+				LLQuaternion rotation = ll_quaternion_from_sd(prim["rotation"]);
+				rotation_xml->createChild("x", TRUE)->setValue(llformat("%.5f", rotation.mQ[VX]));
+				rotation_xml->createChild("y", TRUE)->setValue(llformat("%.5f", rotation.mQ[VY]));
+				rotation_xml->createChild("z", TRUE)->setValue(llformat("%.5f", rotation.mQ[VZ]));
+				rotation_xml->createChild("w", TRUE)->setValue(llformat("%.5f", rotation.mQ[VW]));
+				*/
+
+				// Flags
+				if(prim["phantom"].asBoolean())
+				{
+					LLXMLNodePtr shadow_xml = prim_xml->createChild("phantom", FALSE);
+					shadow_xml->createChild("val", TRUE)->setValue("true");
+				}
+				if(prim["physical"].asBoolean())
+				{
+					LLXMLNodePtr shadow_xml = prim_xml->createChild("physical", FALSE);
+					shadow_xml->createChild("val", TRUE)->setValue("true");
+				}
+				
+				// Grab S path
+				F32 begin_s	= volume_params.getBeginS();
+				F32 end_s	= volume_params.getEndS();
+				// Compute cut and advanced cut from S and T
+				F32 begin_t = volume_params.getBeginT();
+				F32 end_t	= volume_params.getEndT();
+				// Hollowness
+				F32 hollow = volume_params.getHollow();
+				// Twist
+				F32 twist		= volume_params.getTwist() * 180.0;
+				F32 twist_begin = volume_params.getTwistBegin() * 180.0;
+				// Cut interpretation varies based on base object type
+				F32 cut_begin, cut_end, adv_cut_begin, adv_cut_end;
+				if ( selected_item == "sphere" || selected_item == "torus" || 
+					 selected_item == "tube"   || selected_item == "ring" )
+				{
+					cut_begin		= begin_t;
+					cut_end			= end_t;
+					adv_cut_begin	= begin_s;
+					adv_cut_end		= end_s;
+				}
+				else
+				{
+					cut_begin       = begin_s;
+					cut_end         = end_s;
+					adv_cut_begin   = begin_t;
+					adv_cut_end     = end_t;
+				}
+				if (selected_item != "sphere")
+				{		
+					// Shear
+					//<top_shear x="0" y="0" />
+					F32 shear_x = volume_params.getShearX();
+					F32 shear_y = volume_params.getShearY();
+					LLXMLNodePtr shear_xml = prim_xml->createChild("top_shear", FALSE);
+					shear_xml->createChild("x", TRUE)->setValue(llformat("%.5f", shear_x));
+					shear_xml->createChild("y", TRUE)->setValue(llformat("%.5f", shear_y));
+				}
+				else
+				{	
+					// Dimple
+					//<dimple begin="0.0" end="1.0" />
+					LLXMLNodePtr shear_xml = prim_xml->createChild("dimple", FALSE);
+					shear_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", adv_cut_begin));
+					shear_xml->createChild("end", TRUE)->setValue(llformat("%.5f", adv_cut_end));
+				}
+
+				if (selected_item == "box" || selected_item == "cylinder" || selected_item == "prism")
+				{
+					// Taper
+					//<taper x="0" y="0" />
+					F32 taper_x = 1.f - volume_params.getRatioX();
+					F32 taper_y = 1.f - volume_params.getRatioY();
+					LLXMLNodePtr taper_xml = prim_xml->createChild("taper", FALSE);
+					taper_xml->createChild("x", TRUE)->setValue(llformat("%.5f", taper_x));
+					taper_xml->createChild("y", TRUE)->setValue(llformat("%.5f", taper_y));
+				}
+				else if (selected_item == "torus" || selected_item == "tube" || selected_item == "ring")
+				{
+					// Taper
+					//<taper x="0" y="0" />
+					F32 taper_x	= volume_params.getTaperX();
+					F32 taper_y = volume_params.getTaperY();
+					LLXMLNodePtr taper_xml = prim_xml->createChild("taper", FALSE);
+					taper_xml->createChild("x", TRUE)->setValue(llformat("%.5f", taper_x));
+					taper_xml->createChild("y", TRUE)->setValue(llformat("%.5f", taper_y));
+					//Hole Size
+					//<hole_size x="0.2" y="0.35" />
+					F32 hole_size_x = volume_params.getRatioX();
+					F32 hole_size_y = volume_params.getRatioY();
+					LLXMLNodePtr hole_size_xml = prim_xml->createChild("hole_size", FALSE);
+					hole_size_xml->createChild("x", TRUE)->setValue(llformat("%.5f", hole_size_x));
+					hole_size_xml->createChild("y", TRUE)->setValue(llformat("%.5f", hole_size_y));
+					//Advanced cut
+					//<profile_cut begin="0" end="1" />
+					LLXMLNodePtr profile_cut_xml = prim_xml->createChild("profile_cut", FALSE);
+					profile_cut_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", adv_cut_begin));
+					profile_cut_xml->createChild("end", TRUE)->setValue(llformat("%.5f", adv_cut_end));
+					//Skew
+					//<skew val="0.0" />
+					F32 skew = volume_params.getSkew();
+					LLXMLNodePtr skew_xml = prim_xml->createChild("skew", FALSE);
+					skew_xml->createChild("val", TRUE)->setValue(llformat("%.5f", skew));
+					//Radius offset
+					//<radius_offset val="0.0" />
+					F32 radius_offset = volume_params.getRadiusOffset();
+					LLXMLNodePtr radius_offset_xml = prim_xml->createChild("radius_offset", FALSE);
+					radius_offset_xml->createChild("val", TRUE)->setValue(llformat("%.5f", radius_offset));
+					// Revolutions
+					//<revolutions val="1.0" />
+					F32 revolutions = volume_params.getRevolutions();
+					LLXMLNodePtr revolutions_xml = prim_xml->createChild("revolutions", FALSE);
+					revolutions_xml->createChild("val", TRUE)->setValue(llformat("%.5f", revolutions));
+				}
+				//<path_cut begin="0" end="1" />
+				LLXMLNodePtr path_cut_xml = prim_xml->createChild("path_cut", FALSE);
+				path_cut_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", cut_begin));
+				path_cut_xml->createChild("end", TRUE)->setValue(llformat("%.5f", cut_end));
+				//<twist begin="0" end="0" />
+				LLXMLNodePtr twist_xml = prim_xml->createChild("twist", FALSE);
+				twist_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", twist_begin));
+				twist_xml->createChild("end", TRUE)->setValue(llformat("%.5f", twist));
+				// All hollow objects allow a shape to be selected.
+				if (hollow > 0.f)
+				{
+					const char	*selected_hole	= "1";
+					switch (hole)
+					{
+					case LL_PCODE_HOLE_CIRCLE:
+						selected_hole = "3";
+						break;
+					case LL_PCODE_HOLE_SQUARE:
+						selected_hole = "2";
+						break;
+					case LL_PCODE_HOLE_TRIANGLE:
+						selected_hole = "4";
+						break;
+					case LL_PCODE_HOLE_SAME:
+					default:
+						selected_hole = "1";
+						break;
+					}
+					//<hollow amount="0" shape="1" />
+					LLXMLNodePtr hollow_xml = prim_xml->createChild("hollow", FALSE);
+					hollow_xml->createChild("amount", TRUE)->setValue(llformat("%.5f", hollow * 100.0));
+					hollow_xml->createChild("shape", TRUE)->setValue(llformat("%s", selected_hole));
+				}
+				// Extra params
+				// Flexible
+				if(prim.has("flexible"))
+				{
+					LLFlexibleObjectData attributes;
+					attributes.fromLLSD(prim["flexible"]);
+					//<flexible>
+					LLXMLNodePtr flex_xml = prim_xml->createChild("flexible", FALSE);
+					//<softness val="2.0">
+					LLXMLNodePtr softness_xml = flex_xml->createChild("softness", FALSE);
+					softness_xml->createChild("val", TRUE)->setValue(llformat("%.5f", (F32)attributes.getSimulateLOD()));
+					//<gravity val="0.3">
+					LLXMLNodePtr gravity_xml = flex_xml->createChild("gravity", FALSE);
+					gravity_xml->createChild("val", TRUE)->setValue(llformat("%.5f", attributes.getGravity()));
+					//<drag val="2.0">
+					LLXMLNodePtr drag_xml = flex_xml->createChild("drag", FALSE);
+					drag_xml->createChild("val", TRUE)->setValue(llformat("%.5f", attributes.getAirFriction()));
+					//<wind val="0.0">
+					LLXMLNodePtr wind_xml = flex_xml->createChild("wind", FALSE);
+					wind_xml->createChild("val", TRUE)->setValue(llformat("%.5f", attributes.getWindSensitivity()));
+					//<tension val="1.0">
+					LLXMLNodePtr tension_xml = flex_xml->createChild("tension", FALSE);
+					tension_xml->createChild("val", TRUE)->setValue(llformat("%.5f", attributes.getTension()));
+					//<force x="0.0" y="0.0" z="0.0" />
+					LLXMLNodePtr force_xml = flex_xml->createChild("force", FALSE);
+					force_xml->createChild("x", TRUE)->setValue(llformat("%.5f", attributes.getUserForce().mV[VX]));
+					force_xml->createChild("y", TRUE)->setValue(llformat("%.5f", attributes.getUserForce().mV[VY]));
+					force_xml->createChild("z", TRUE)->setValue(llformat("%.5f", attributes.getUserForce().mV[VZ]));
+				}
+				
+				// Light
+				if (prim.has("light"))
+				{
+					LLLightParams light;
+					light.fromLLSD(prim["light"]);
+					//<light>
+					LLXMLNodePtr light_xml = prim_xml->createChild("light", FALSE);
+					//<color r="255" g="255" b="255" />
+					LLXMLNodePtr color_xml = light_xml->createChild("color", FALSE);
+					LLColor4 color = light.getColor();
+					color_xml->createChild("r", TRUE)->setValue(llformat("%u", (U32)(color.mV[VRED] * 255)));
+					color_xml->createChild("g", TRUE)->setValue(llformat("%u", (U32)(color.mV[VGREEN] * 255)));
+					color_xml->createChild("b", TRUE)->setValue(llformat("%u", (U32)(color.mV[VBLUE] * 255)));
+					//<intensity val="1.0" />
+					LLXMLNodePtr intensity_xml = light_xml->createChild("intensity", FALSE);
+					intensity_xml->createChild("val", TRUE)->setValue(llformat("%.5f", color.mV[VALPHA]));
+					//<radius val="10.0" />
+					LLXMLNodePtr radius_xml = light_xml->createChild("radius", FALSE);
+					radius_xml->createChild("val", TRUE)->setValue(llformat("%.5f", light.getRadius()));
+					//<falloff val="0.75" />
+					LLXMLNodePtr falloff_xml = light_xml->createChild("falloff", FALSE);
+					falloff_xml->createChild("val", TRUE)->setValue(llformat("%.5f", light.getFalloff()));
+				}
+				// Sculpt
+				if (prim.has("sculpt"))
+				{
+					LLSculptParams sculpt;
+					sculpt.fromLLSD(prim["sculpt"]);
+					
+					//<topology val="4" />
+					LLXMLNodePtr topology_xml = prim_xml->createChild("topology", FALSE);
+					topology_xml->createChild("val", TRUE)->setValue(llformat("%u", sculpt.getSculptType()));
+					
+					//<sculptmap_uuid>1e366544-c287-4fff-ba3e-5fafdba10272</sculptmap_uuid>
+					//<sculptmap_file>apple_map.tga</sculptmap_file>
+					//FIXME png/tga/j2c selection itt.
+					std::string sculpttexture;
+					sculpt.getSculptTexture().toString(sculpttexture);
+					prim_xml->createChild("sculptmap_file", FALSE)->setValue(sculpttexture+".tga");
+					prim_xml->createChild("sculptmap_uuid", FALSE)->setValue(sculpttexture);
+				}
+				//<texture>
+				LLXMLNodePtr texture_xml = prim_xml->createChild("texture", FALSE);
+				// Textures
+				LLSD te_llsd;
+				LLSD tes = prim["textures"];
+				LLPrimitive object;
+				object.setNumTEs(U8(tes.size()));
+				
+				for (int i = 0; i < tes.size(); i++)
+				{
+					LLTextureEntry tex;
+					tex.fromLLSD(tes[i]);
+					object.setTE(U8(i), tex);
+				}
+			
+				//U8 te_count = object->getNumTEs();
+				//for (U8 i = 0; i < te_count; i++)
+				//{
+				//for each texture
+				for (int i = 0; i < tes.size(); i++)
+				{
+					LLTextureEntry tex;
+					tex.fromLLSD(tes[i]);
+					//bool alreadyseen=false;
+					//te_llsd.append(object->getTE(i)->asLLSD());
+					std::list<LLUUID>::iterator iter;
+					
+					/* this loop keeps track of seen textures, replace with
+					emerald version.
+					for(iter = textures.begin(); iter != textures.end() ; iter++) 
+					{
+						if( (*iter)==object->getTE(i)->getID())
+							alreadyseen=true;
+					}
+		*/
+					//<face id=0>
+					LLXMLNodePtr face_xml = texture_xml->createChild("face", FALSE);
+					//This may be a hack, but it's ok since we're not using id in this code. We set id differently because for whatever reason
+					//llxmlnode filters a few parameters including ID. -Patrick Sapinski (Friday, September 25, 2009)
+					face_xml->mID = llformat("%d", i);
+					//<tile u="-1" v="1" />
+					//object->getTE(face)->mScaleS
+					//object->getTE(face)->mScaleT
+					LLXMLNodePtr tile_xml = face_xml->createChild("tile", FALSE);
+					tile_xml->createChild("u", TRUE)->setValue(llformat("%.5f", object.getTE(i)->mScaleS));
+					tile_xml->createChild("v", TRUE)->setValue(llformat("%.5f", object.getTE(i)->mScaleT));
+					//<offset u="0" v="0" />
+					//object->getTE(face)->mOffsetS
+					//object->getTE(face)->mOffsetT
+					LLXMLNodePtr offset_xml = face_xml->createChild("offset", FALSE);
+					offset_xml->createChild("u", TRUE)->setValue(llformat("%.5f", object.getTE(i)->mOffsetS));
+					offset_xml->createChild("v", TRUE)->setValue(llformat("%.5f", object.getTE(i)->mOffsetT));
+					//<rotation w="0" />
+					//object->getTE(face)->mRotation
+					LLXMLNodePtr rotation_xml = face_xml->createChild("rotation", FALSE);
+					rotation_xml->createChild("w", TRUE)->setValue(llformat("%.5f", (object.getTE(i)->mRotation * RAD_TO_DEG)));
+					//<image_file><![CDATA[76a0319a-e963-44b0-9f25-127815226d71.tga]]></image_file>
+					//<image_uuid>76a0319a-e963-44b0-9f25-127815226d71</image_uuid>
+					LLUUID texture = object.getTE(i)->getID();
+					std::string uuid_string;
+					object.getTE(i)->getID().toString(uuid_string);
+					
+					face_xml->createChild("image_file", FALSE)->setStringValue(uuid_string);
+					face_xml->createChild("image_uuid", FALSE)->setValue(uuid_string);
+					//<color r="255" g="255" b="255" />
+					LLXMLNodePtr color_xml = face_xml->createChild("color", FALSE);
+					LLColor4 color = object.getTE(i)->getColor();
+					color_xml->createChild("r", TRUE)->setValue(llformat("%u", (int)(color.mV[VRED] * 255.f)));
+					color_xml->createChild("g", TRUE)->setValue(llformat("%u", (int)(color.mV[VGREEN] * 255.f)));
+					color_xml->createChild("b", TRUE)->setValue(llformat("%u", (int)(color.mV[VBLUE] * 255.f)));
+					//<transparency val="0" />
+					LLXMLNodePtr transparency_xml = face_xml->createChild("transparency", FALSE);
+					transparency_xml->createChild("val", TRUE)->setValue(llformat("%u", (int)((1.f - color.mV[VALPHA]) * 100.f)));
+					//<glow val="0" />
+					//object->getTE(face)->getGlow()
+					LLXMLNodePtr glow_xml = face_xml->createChild("glow", FALSE);
+					glow_xml->createChild("val", TRUE)->setValue(llformat("%.5f", object.getTE(i)->getGlow()));
+					//HACK! primcomposer chokes if we have fullbright but don't specify shine+bump.
+					//<fullbright val="false" />
+					//<shine val="0" />
+					//<bump val="0" />
+					if(object.getTE(i)->getFullbright() || object.getTE(i)->getShiny() || object.getTE(i)->getBumpmap())
+					{
+						std::string temp = "false";
+						if(object.getTE(i)->getFullbright())
+							temp = "true";
+						LLXMLNodePtr fullbright_xml = face_xml->createChild("fullbright", FALSE);
+						fullbright_xml->createChild("val", TRUE)->setValue(temp);
+						LLXMLNodePtr shine_xml = face_xml->createChild("shine", FALSE);
+						shine_xml->createChild("val", TRUE)->setValue(llformat("%u",object.getTE(i)->getShiny()));
+						LLXMLNodePtr bumpmap_xml = face_xml->createChild("bump", FALSE);
+						bumpmap_xml->createChild("val", TRUE)->setValue(llformat("%u",object.getTE(i)->getBumpmap()));
+					}
+						
+					//<mapping val="0" />
+				} // end for each texture
+
+				//OAR FIXME!!!
+
+				/*
+				//<inventory>
+
+				
+				LLXMLNodePtr inventory_xml = prim_xml->createChild("inventory", FALSE);
+				//LLSD inventory = prim["inventory"];
+				LLSD * inventory = received_inventory[prim["id"]];
+
+				if(inventory !=NULL)
+				{
+					if(prim["inventoryReceived"].asBoolean())
+					{
+						//flag that we have already received inventory contents
+						inventory_xml->createChild("received", FALSE)->setValue("true");
+					}
+
+					//for each inventory item
+					for (LLSD::array_iterator inv = (*inventory).beginArray(); inv != (*inventory).endArray(); ++inv)
+					{
+						LLSD item = (*inv);
+					
+						//<item>
+						LLXMLNodePtr field_xml = inventory_xml->createChild("item", FALSE);
+						   //<description>2008-01-29 05:01:19 note card</description>
+						field_xml->createChild("description", FALSE)->setValue(item["desc"].asString());
+						   //<item_id>673b00e8-990f-3078-9156-c7f7b4a5f86c</item_id>
+						field_xml->createChild("item_id", FALSE)->setValue(item["item_id"].asString());
+						   //<name>blah blah</name>
+						field_xml->createChild("name", FALSE)->setValue(item["name"].asString());
+						   //<type>notecard</type>
+						field_xml->createChild("type", FALSE)->setValue(item["type"].asString());
+					} // end for each inventory item
+					//add this prim to the linkset.
+
+					delete(inventory);
+					received_inventory.erase(LLUUID(prim["id"].asString()));
+
+				} */
+
+				linkset_xml->addChild(prim_xml);
+			} //end for each object
+			//add this linkset to the group.
+			group_xml->addChild(linkset_xml);
+			//delete plsd;
+		} //end for each linkset.
+
+		// Create a file stream and write to it
+		llofstream out(path + "test",ios_base::out);
+		if (!out.good())
+		{
+			llwarns << "Unable to open for output." << llendl;
+		}
+		else
+		{
+			out << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+			project_xml->addChild(group_xml);
+			project_xml->writeToOstream(out);
+			out.close();
+		}
+
+		/* this code gzips the archive, we want to zip it though!
+		std::string gzip_filename(destination);
+		gzip_filename.append(".gz");
+		if(gzip_file(destination, gzip_filename))
+		{
+			lldebugs << "Successfully compressed " << destination << llendl;
+			//LLFile::remove(inventory_filename);
+		}
+		else
+		{
+			llwarns << "Unable to compress " << destination << llendl;
+		}
+		*/
+
+
+
+/*	we can still output an LLSD with this but it's no longer emerald compatible because 
+	we switched to region relative positions. useful for testing. */
+
+//	LLSD file;
+//	LLSD header;
+//	header["Version"] = 2;
+//	file["Header"] = header;
+	//std::vector<std::string> uris;
+	//	LLViewerLogin* vl = LLViewerLogin::getInstance();
+	//	std::string grid_uri = vl->getGridLabel(); //RC FIXME
+	//LLStringUtil::toLower(uris[0]);
+//	file["Grid"] = grid_uri;
+//	file["Objects"] = data;
+
+	// Create a file stream and write to it
+//	llofstream export_file(destination + ".llsd",std::ios_base::app | std::ios_base::out);
+//	LLSDSerialize::toPrettyXML(file, export_file);
+	// Open the file save dialog
+//	export_file.close();
 }
 
 void hpa_converter::copy_assets_from(std::string source_path, std::string mask)
