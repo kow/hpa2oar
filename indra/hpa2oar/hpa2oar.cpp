@@ -73,8 +73,8 @@ int main(int argv,char * argc[])
 		if(!gDirUtilp->fileExists(converter.path))
 			llerrs << "\"" << converter.path << "\" doesn't exist"<<llendl;
 
-		if(gDirUtilp->fileExists(converter.outputPath))
-			llerrs << "Output path exists!" << llendl;
+		//if(gDirUtilp->fileExists(converter.outputPath))
+		//	llerrs << "Output path exists!" << llendl;
 
 		converter.run();
 
@@ -360,6 +360,8 @@ void hpa_converter::save_oar_objects()
 
 			LLPCode pcode = prim["pcode"].asInteger();
 			// Sculpt
+
+			/* OAR FIXME!
 			if (prim.has("sculpt"))
 				prim_xml = new LLXMLNode("sculpt", FALSE);
 			else if (pcode == LL_PCODE_LEGACY_GRASS)
@@ -373,14 +375,26 @@ void hpa_converter::save_oar_objects()
 				prim_xml = new LLXMLNode("tree", FALSE);
 				LLXMLNodePtr shadow_xml = prim_xml->createChild("type", FALSE);
 				shadow_xml->createChild("val", TRUE)->setValue(prim["state"]);
-			}
-			else
-				prim_xml = new LLXMLNode(selected_item.c_str(), FALSE);
-			//OAR FIXME!!!
+			} */
+
+			prim_xml = new LLXMLNode("SceneObjectPart", FALSE);
 
 			//hooray for standards!
 			prim_xml->createChild("xmlns:xsi", TRUE)->setValue("http://www.w3.org/2001/XMLSchema-instance");
 			prim_xml->createChild("xmlns:xsd", TRUE)->setValue("http://www.w3.org/2001/XMLSchema");
+
+			//<Shape>
+			LLXMLNodePtr shape_xml = prim_xml->createChild("Shape", FALSE);
+			shape_xml->createChild("PCode", FALSE)->setIntValue(pcode);
+
+			//<ProfileCurve>1</ProfileCurve>
+
+			//<PathBegin>0</PathBegin>
+			//<PathCurve>16</PathCurve>
+			//<PathEnd>0</PathEnd>
+
+
+
 
 			//Properties
 
@@ -404,8 +418,6 @@ void hpa_converter::save_oar_objects()
 				else
 					linkset_name = object_uuid.asString();
 			}
-
-			//OAR FIXME!!
 
 			// Transforms
 
