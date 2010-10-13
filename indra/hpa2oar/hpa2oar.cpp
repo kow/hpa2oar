@@ -262,7 +262,7 @@ void hpa_converter::save_oar_objects()
 		std::string linkset_name = "";
 		std::string linkset_id = "";
 
-		LLSD plsd=(*iter);
+		LLSD plsd=(*iter)["Object"];
 
 		bool is_root_prim = true;
 
@@ -271,6 +271,7 @@ void hpa_converter::save_oar_objects()
 			link_iter != plsd.endArray();
 			++link_iter)
 		{
+
 			LLSD prim = (*link_iter);
 
 			std::string selected_item	= "box";
