@@ -950,14 +950,14 @@ void LLXMLNode::writeToOstream(std::ostream& output_stream, const std::string& i
 	BOOL has_default_length = mDefault.isNull()?FALSE:(mLength == mDefault->mLength);
 
 	// stream the name
-	output_stream << indent << "<" << mName->mString << "\n";
+	output_stream << indent << "<" << mName->mString;
 
 	if (use_type_decorations)
 	{
 		// ID
 		if (mID != "")
 		{
-			output_stream << indent << " id=\"" << mID << "\"\n";
+			output_stream << " id=\"" << mID << "\"\n";
 		}
 
 		// Type
@@ -975,7 +975,7 @@ void LLXMLNode::writeToOstream(std::ostream& output_stream, const std::string& i
 				output_stream << indent << " type=\"float\"\n";
 				break;
 			case TYPE_STRING:
-				output_stream << indent << " type=\"string\"\n";
+				output_stream << " type=\"string\"";
 				break;
 			case TYPE_UUID:
 				output_stream << indent << " type=\"uuid\"\n";
@@ -1024,7 +1024,7 @@ void LLXMLNode::writeToOstream(std::ostream& output_stream, const std::string& i
 		// Array length
 		if (!has_default_length && mLength > 0)
 		{
-			output_stream << indent << " length=\"" << mLength << "\"\n";
+			output_stream << " length=\"" << mLength << "\"";
 		}
 	}
 
@@ -1052,13 +1052,13 @@ void LLXMLNode::writeToOstream(std::ostream& output_stream, const std::string& i
 				std::string attr_str = llformat(" %s=\"%s\"",
 											 attr.c_str(),
 											 escapeXML(child->mValue).c_str());
-				output_stream << indent << attr_str << "\n";
+				output_stream << attr_str;
 			}
 		}
 	}
 
 	// erase last \n before attaching final > or />
-	output_stream.seekp(-1, std::ios::cur);
+	//output_stream.seekp(-1, std::ios::cur);
 
 	if (mChildren.isNull() && mValue == "")
 	{
