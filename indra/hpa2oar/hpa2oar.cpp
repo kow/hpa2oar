@@ -109,7 +109,8 @@ void hpa_converter::run()
 	create_directory_structure();
 
 	printinfo("Copying assets");
-	copy_all_assets();
+	//skip this for now
+	//copy_all_assets();
 	load_hpa(path);
 	printinfo(llformat("Loaded %u linksets.",mOARFileContents.size()));
 	printinfo("Saving linksets in OAR format");
@@ -263,12 +264,14 @@ void hpa_converter::save_oar_objects()
 
 		LLSD plsd=(*iter);
 
+		bool is_root_prim = true;
+
 		//for every prim in the linkset
-		for(LLSD::array_iterator link_itr = plsd.beginArray();
-			link_itr != plsd.endArray();
-			++link_itr)
+		for(LLSD::array_iterator link_iter = plsd.beginArray();
+			link_iter != plsd.endArray();
+			++link_iter)
 		{
-			LLSD prim = (*link_itr);
+			LLSD prim = (*link_iter);
 
 			std::string selected_item	= "box";
 			F32 scale_x=1.f, scale_y=1.f;
@@ -286,7 +289,7 @@ void hpa_converter::save_oar_objects()
 			object_uuid.generate();
 
 			//set the linkset identifier if this is the root prim
-			if(iter == mOARFileContents.beginArray())
+			if(is_root_prim)
 				linkset_id = object_uuid.asString();
 
 
@@ -390,7 +393,7 @@ void hpa_converter::save_oar_objects()
 			prim_xml->createChild("uuid",FALSE)->setValue(object_uuid.asString());
 
 			//if this is the root prim, set the linkset name
-			if(iter == mOARFileContents.beginArray())
+			if(is_root_prim)
 			{
 				if(prim.has("name"))
 					linkset_name = prim["name"].asString();
@@ -420,7 +423,7 @@ void hpa_converter::save_oar_objects()
 			rotation_xml->createChild("w", TRUE)->setValue(llformat("%.5f", rotation.mQ[VW]));
 
 			//if this is the root prim, set the prettified position
-			if(iter == mOARFileContents.beginArray())
+			if(is_root_prim)
 			{
 				pretty_position = llformat("%0.f_%0.f_%0.f", position.mV[VX], position.mV[VY], position.mV[VZ]);
 			}
@@ -779,7 +782,7 @@ void hpa_converter::save_oar_objects()
 			prim_xml->addChild(inventory_xml);
 
 			//check if this is the first prim in the linkset
-			if(iter == mOARFileContents.beginArray())
+			if(is_root_prim)
 				linkset_xml->addChild(prim_xml);
 			else
 				child_container->addChild(prim_xml);
@@ -790,13 +793,16 @@ void hpa_converter::save_oar_objects()
 		llofstream out(linkset_file_path,std::ios_base::out | std::ios_base::trunc);
 		if (!out.good())
 		{
-			llwarns << "Unable to open \"" + linkset_file_path + "\" for output." << llendl;
+			llwarns << "\nUnable to open \"" + linkset_file_path + "\" for output." << llendl;
 		}
 		else
 		{
 			linkset_xml->writeToOstream(out);
 			out.close();
 		}
+
+		//obviously, none of the next prims are going to be root prims
+		is_root_prim = false;
 
 		std::cout << "=" << std::flush;
 	}
