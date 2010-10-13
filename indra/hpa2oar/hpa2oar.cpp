@@ -764,6 +764,7 @@ void hpa_converter::save_oar_objects()
 			//<inventory>
 
 
+			prim_xml->createChild("FolderID", FALSE)->createChild("Guid", FALSE)->setValue(object_uuid.asString());
 			LLXMLNodePtr inventory_xml = prim_xml->createChild("TaskInventory", FALSE);
 
 			U32 num_of_items = 0;
@@ -785,15 +786,25 @@ void hpa_converter::save_oar_objects()
 					LLXMLNodePtr field_xml = inventory_xml->createChild("TaskInventoryItem", FALSE);
 					   //<Description>2008-01-29 05:01:19 note card</Description>
 					field_xml->createChild("Description", FALSE)->setValue(item["desc"].asString());
-					   //<ItemID><GUID>673b00e8-990f-3078-9156-c7f7b4a5f86c</GUID></ItemID>
-					field_xml->createChild("ItemID", FALSE)->createChild("GUID", FALSE)->setValue(item["item_id"].asString());
-//Change this to make AssetID and ItemID distinct
-						//<AssetID><GUID>673b00e8-990f-3078-9156-c7f7b4a5f86c</GUID></AssetID>
-					field_xml->createChild("AssetID", FALSE)->createChild("GUID", FALSE)->setValue(item["item_id"].asString());
+					if(item.has("asset_id"))
+					{
+					   //<ItemID><Guid>673b00e8-990f-3078-9156-c7f7b4a5f86c</Guid></ItemID>
+						field_xml->createChild("ItemID", FALSE)->createChild("Guid", FALSE)->setValue(item["item_id"].asString());
+					   //<AssetID><Guid>673b00e8-990f-3078-9156-c7f7b4a5f86c</Guid></AssetID>
+						field_xml->createChild("AssetID", FALSE)->createChild("Guid", FALSE)->setValue(item["asset_id"].asString());
+					}
+					else
+					{
+						//<ItemID><Guid>673b00e8-990f-3078-9156-c7f7b4a5f86c</Guid></ItemID>
+						 //welp, we don't have an asset id, assume that the backup's screwed and has been using the itemid as the assetid
+						 field_xml->createChild("ItemID", FALSE)->createChild("Guid", FALSE)->setValue(LLUUID::generate().asString());
+						//<AssetID><Guid>673b00e8-990f-3078-9156-c7f7b4a5f86c</Guid></AssetID>
+						 field_xml->createChild("AssetID", FALSE)->createChild("Guid", FALSE)->setValue(item["item_id"].asString());
+					}
 					   //<name>blah blah</name>
-					field_xml->createChild("name", FALSE)->setValue(item["name"].asString());
+					field_xml->createChild("Name", FALSE)->setValue(item["name"].asString());
 					   //<type>10</type>
-					field_xml->createChild("type", FALSE)->setValue(llformat("%d", LLAssetType::lookup(item["type"].asString())));
+					field_xml->createChild("InvType", FALSE)->setValue(llformat("%d", LLAssetType::lookup(item["type"].asString())));
 				} // end for each inventory item
 				//add this prim to the linkset.
 
@@ -1417,6 +1428,9 @@ LLSD hpa_converter::parse_hpa_object(LLXmlTreeNode* prim)
 						//<item_id>673b00e8-990f-3078-9156-c7f7b4a5f86c</item_id>
 						else if (param->hasName("item_id"))
 							sd["item_id"] = param->getTextContents();
+						//<asset_id>imagine a uuid here</asset_id>
+						else if (param->hasName("asset_id"))
+							sd["asset_id"] = param->getTextContents();
 						//<name>blah blah</name>
 						else if (param->hasName("name"))
 							sd["name"] = param->getTextContents();
