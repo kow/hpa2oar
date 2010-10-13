@@ -385,14 +385,14 @@ void hpa_converter::save_oar_objects()
 			//Properties
 
 			if(prim.has("name"))
-				prim_xml->createChild("name", FALSE)->setStringValue(std::string(prim["name"].asString()));
+				prim_xml->createChild("Name", FALSE)->setStringValue(std::string(prim["name"].asString()));
 			else
-				prim_xml->createChild("name", FALSE)->setStringValue(object_uuid.asString());
+				prim_xml->createChild("Name", FALSE)->setStringValue(object_uuid.asString());
 
 			if(prim.has("description"))
-				prim_xml->createChild("name", FALSE)->setStringValue(std::string(prim["description"].asString()));
+				prim_xml->createChild("Description", FALSE)->setStringValue(std::string(prim["description"].asString()));
 			else
-				prim_xml->createChild("name", FALSE)->setStringValue(std::string(""));
+				prim_xml->createChild("Description", FALSE)->setStringValue(std::string(""));
 
 			prim_xml->createChild("uuid",FALSE)->setValue(object_uuid.asString());
 
