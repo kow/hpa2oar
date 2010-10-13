@@ -804,7 +804,7 @@ void hpa_converter::save_oar_objects()
 		}
 		else
 		{
-			linkset_xml->writeToOstream(out);
+			linkset_xml->writeToOstream(out, std::string(), FALSE);
 			out.close();
 		}
 
