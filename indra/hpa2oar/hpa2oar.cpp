@@ -357,6 +357,7 @@ void hpa_converter::save_oar_objects()
 			// Create an LLSD object that represents this prim. It will be injected in to the overall LLSD
 			// tree structure
 			LLXMLNode *prim_xml;
+
 			LLPCode pcode = prim["pcode"].asInteger();
 			// Sculpt
 			if (prim.has("sculpt"))
@@ -377,6 +378,9 @@ void hpa_converter::save_oar_objects()
 				prim_xml = new LLXMLNode(selected_item.c_str(), FALSE);
 			//OAR FIXME!!!
 
+			//hooray for standards!
+			prim_xml->createChild("xmlns:xsi", TRUE)->setValue("http://www.w3.org/2001/XMLSchema-instance");
+			prim_xml->createChild("xmlns:xsd", TRUE)->setValue("http://www.w3.org/2001/XMLSchema");
 
 			//Properties
 
@@ -755,6 +759,9 @@ void hpa_converter::save_oar_objects()
 				for (LLSD::array_iterator inv = inventory.beginArray(); inv != inventory.endArray(); ++inv)
 				{
 					LLSD item = (*inv);
+
+					//skip by undefined items
+					if(item.isUndefined()) continue;
 
 					++num_of_items;
 
