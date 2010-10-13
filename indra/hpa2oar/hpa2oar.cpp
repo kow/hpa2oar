@@ -112,8 +112,16 @@ void hpa_converter::run()
 	copy_all_assets();
 	load_hpa(path);
 	printinfo(llformat("Loaded %u linksets.",mOARFileContents.size()));
+	printinfo("Saving linksets in OAR format");
 	save_oar_objects();
-	
+	printinfo(
+"\n	     _                  \n"
+"	  __| | ___  _ __   ___ \n"
+"	 / _` |/ _ \\| '_ \\ / _ \\\n"
+"	| (_| | (_) | | | |  __/\n"
+"	 \\__,_|\\___/|_| |_|\\___|\n"
+
+			  );
 }
 
 void hpa_converter::create_directory_structure()
@@ -789,7 +797,10 @@ void hpa_converter::save_oar_objects()
 			linkset_xml->writeToOstream(out);
 			out.close();
 		}
+
+		std::cout << "=" << std::flush;
 	}
+	std::cout << std::endl;
 }
 
 //This function accepts the HPA <group> object and returns all nested objects and linksets as LLSD.
