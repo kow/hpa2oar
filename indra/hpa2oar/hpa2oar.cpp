@@ -408,23 +408,27 @@ void hpa_converter::save_oar_objects()
 			//OAR FIXME!!
 
 			// Transforms
-			LLXMLNodePtr position_xml = prim_xml->createChild("position", FALSE);
-			LLVector3 position;
-			position.setVec(ll_vector3d_from_sd(prim["position"]));
-			position_xml->createChild("x", TRUE)->setValue(llformat("%.5f", position.mV[VX]));
-			position_xml->createChild("y", TRUE)->setValue(llformat("%.5f", position.mV[VY]));
-			position_xml->createChild("z", TRUE)->setValue(llformat("%.5f", position.mV[VZ]));
-			LLXMLNodePtr scale_xml = prim_xml->createChild("size", FALSE);
+
+			//need groupposition and different branches for root and children
+			LLXMLNodePtr position_xml = prim_xml->createChild("OffsetPosition", FALSE);
+			LLVector3 position = ll_vector3_from_sd(prim["position"]);
+			position_xml->createChild("x", FALSE)->setValue(llformat("%.5f", position.mV[VX]));
+			position_xml->createChild("y", FALSE)->setValue(llformat("%.5f", position.mV[VY]));
+			position_xml->createChild("z", FALSE)->setValue(llformat("%.5f", position.mV[VZ]));
+
+			LLXMLNodePtr scale_xml = prim_xml->createChild("Scale", FALSE);
 			LLVector3 scale = ll_vector3_from_sd(prim["scale"]);
-			scale_xml->createChild("x", TRUE)->setValue(llformat("%.5f", scale.mV[VX]));
-			scale_xml->createChild("y", TRUE)->setValue(llformat("%.5f", scale.mV[VY]));
-			scale_xml->createChild("z", TRUE)->setValue(llformat("%.5f", scale.mV[VZ]));
-			LLXMLNodePtr rotation_xml = prim_xml->createChild("rotation", FALSE);
+			scale_xml->createChild("X", FALSE)->setValue(llformat("%.5f", scale.mV[VX]));
+			scale_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", scale.mV[VY]));
+			scale_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", scale.mV[VZ]));
+
+			//This is probably wrong! This may be absolute rotations where it's wanting relative from the root's rot!
+			LLXMLNodePtr rotation_xml = prim_xml->createChild("OffsetRotation", FALSE);
 			LLQuaternion rotation = ll_quaternion_from_sd(prim["rotation"]);
-			rotation_xml->createChild("x", TRUE)->setValue(llformat("%.5f", rotation.mQ[VX]));
-			rotation_xml->createChild("y", TRUE)->setValue(llformat("%.5f", rotation.mQ[VY]));
-			rotation_xml->createChild("z", TRUE)->setValue(llformat("%.5f", rotation.mQ[VZ]));
-			rotation_xml->createChild("w", TRUE)->setValue(llformat("%.5f", rotation.mQ[VW]));
+			rotation_xml->createChild("X", FALSE)->setValue(llformat("%.5f", rotation.mQ[VX]));
+			rotation_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", rotation.mQ[VY]));
+			rotation_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", rotation.mQ[VZ]));
+			rotation_xml->createChild("W", FALSE)->setValue(llformat("%.5f", rotation.mQ[VW]));
 
 			//if this is the root prim, set the prettified position
 			if(is_root_prim)
