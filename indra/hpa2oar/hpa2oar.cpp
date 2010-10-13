@@ -256,7 +256,7 @@ void hpa_converter::save_oar_objects()
 
 		LLXMLNode *linkset_xml = new LLXMLNode("SceneObjectGroup", FALSE);
 
-		LLXMLNode *child_container = linkset_xml->createChild("OtherParts", FALSE);
+		LLXMLNode *child_container = new LLXMLNode("OtherParts", FALSE);
 
 		std::string pretty_position = "";
 		std::string linkset_name = "";
@@ -292,7 +292,6 @@ void hpa_converter::save_oar_objects()
 			//set the linkset identifier if this is the root prim
 			if(is_root_prim)
 				linkset_id = object_uuid.asString();
-
 
 
 			// Scale goes first so we can differentiate between a sphere and a torus,
@@ -784,9 +783,16 @@ void hpa_converter::save_oar_objects()
 
 			//check if this is the first prim in the linkset
 			if(is_root_prim)
+			{
 				linkset_xml->addChild(prim_xml);
+				//we want this after
+				linkset_xml->addChild(child_container);
+			}
 			else
 				child_container->addChild(prim_xml);
+
+			//obviously, none of the next prims are going to be root prims
+			is_root_prim = false;
 		}
 		// Create a file stream and write to it
 		std::string linkset_file_path = outputPath + sep + "objects" + sep +
@@ -801,9 +807,6 @@ void hpa_converter::save_oar_objects()
 			linkset_xml->writeToOstream(out);
 			out.close();
 		}
-
-		//obviously, none of the next prims are going to be root prims
-		is_root_prim = false;
 
 		std::cout << "=" << std::flush;
 	}
