@@ -1067,7 +1067,9 @@ void LLXMLNode::writeToOstream(std::ostream& output_stream, const std::string& i
 	}
 	else
 	{
-		output_stream << ">\n";
+		output_stream << ">";
+		if (mValue.empty())
+			output_stream << "\n";
 		if (mChildren.notNull())
 		{
 			// stream non-attributes
@@ -1080,9 +1082,11 @@ void LLXMLNode::writeToOstream(std::ostream& output_stream, const std::string& i
 		if (!mValue.empty())
 		{
 			std::string contents = getTextContents();
-			output_stream << indent << "    " << escapeXML(contents) << "\n";
+			output_stream << escapeXML(contents);
 		}
-		output_stream << indent << "</" << mName->mString << ">\n";
+		if (mValue.empty())
+			output_stream << indent;
+		output_stream << "</" << mName->mString << ">\n";
 	}
 }
 
