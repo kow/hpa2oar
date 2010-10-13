@@ -957,7 +957,7 @@ void LLXMLNode::writeToOstream(std::ostream& output_stream, const std::string& i
 		// ID
 		if (mID != "")
 		{
-			output_stream << " id=\"" << mID << "\"\n";
+			output_stream << " id=\"" << mID << "\"";
 		}
 
 		// Type
