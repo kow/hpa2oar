@@ -358,10 +358,10 @@ void hpa_converter::save_oar_objects()
 			// tree structure
 			LLXMLNode *prim_xml;
 
-			LLPCode pcode = prim["pcode"].asInteger();
+			int pcode = 9; //prim["pcode"].asInteger();
 			// Sculpt
 
-			/* OAR FIXME!
+			/* OAR FIXME! we need to translate trees + grass to a PCODE!
 			if (prim.has("sculpt"))
 				prim_xml = new LLXMLNode("sculpt", FALSE);
 			else if (pcode == LL_PCODE_LEGACY_GRASS)
@@ -388,9 +388,12 @@ void hpa_converter::save_oar_objects()
 			shape_xml->createChild("PCode", FALSE)->setIntValue(pcode);
 
 			//<ProfileCurve>1</ProfileCurve>
+			shape_xml->createChild("ProfileCurve", FALSE)->setIntValue(profile);
+
+			//<PathCurve>16</PathCurve>
+			shape_xml->createChild("PathCurve", FALSE)->setIntValue(path);
 
 			//<PathBegin>0</PathBegin>
-			//<PathCurve>16</PathCurve>
 			//<PathEnd>0</PathEnd>
 
 
