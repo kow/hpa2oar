@@ -492,16 +492,18 @@ void hpa_converter::save_oar_objects()
 			rotation_xml->createChild("W", FALSE)->setValue(llformat("%.5f", rotation.mQ[VW]));
 
 			// Flags
+
+			//I really hate libomv
+			LLXMLNodePtr object_flags_xml = prim_xml->createChild("ObjectFlags", FALSE);
+
+			U32 object_flags = 0;
+
 			if(prim["phantom"].asBoolean())
-			{
-				LLXMLNodePtr shadow_xml = prim_xml->createChild("phantom", FALSE);
-				shadow_xml->createChild("val", TRUE)->setValue("true");
-			}
+				object_flags |= 0x00000400;
 			if(prim["physical"].asBoolean())
-			{
-				LLXMLNodePtr shadow_xml = prim_xml->createChild("physical", FALSE);
-				shadow_xml->createChild("val", TRUE)->setValue("true");
-			}
+				object_flags |= 0x00000001;
+
+			object_flags_xml->setValue(llformat("%u", object_flags));
 
 			// Grab S path
 			F32 begin_s	= volume_params.getBeginS();
@@ -612,17 +614,17 @@ void hpa_converter::save_oar_objects()
 				switch (hole)
 				{
 				case LL_PCODE_HOLE_CIRCLE:
-					selected_hole = "3";
+					selected_hole = "Circle";
 					break;
 				case LL_PCODE_HOLE_SQUARE:
-					selected_hole = "2";
+					selected_hole = "Square";
 					break;
 				case LL_PCODE_HOLE_TRIANGLE:
-					selected_hole = "4";
+					selected_hole = "Triangle";
 					break;
 				case LL_PCODE_HOLE_SAME:
 				default:
-					selected_hole = "1";
+					selected_hole = "Same";
 					break;
 				}
 				//<hollow amount="0" shape="1" />
@@ -890,6 +892,38 @@ void hpa_converter::save_oar_objects()
 
 		std::cout << "=" << std::flush;
 	}
+
+	// Create the archive.xml
+	LLXMLNode* archive_info_xml = LLXMLNode("archive", FALSE);
+
+	//We use the 0.1 format for now.
+	archive_info_xml->createChild("major_version", TRUE)->setValue("0");
+	archive_info_xml->createChild("minor_version", TRUE)->setValue("1");
+
+	LLXMLNodePtr creation_info_xml = archive_info_xml->createChild("creation_info", FALSE);
+
+	//doesn't particularly matter when it was exported
+	creation_info_xml->createChild("datetime", FALSE)->setValue("1");
+
+	LLUUID random_archive_id;
+	random_archive_id.generate();
+
+	creation_info_xml->createChild("id", FALSE)->setValue(random_archive_id.asString());
+
+	std::string archive_info_path = outputPath + sep + "archive.xml";
+	llofstream out(archive_info_path,std::ios_base::out | std::ios_base::trunc);
+
+	if(!out.good())
+	{
+		llwarns << "\nUnable to open \"" + archive_info_path + "\" for output." << llendl;
+	}
+	else
+	{
+		out << "<?xml version=\"1.0\" encoding=\"utf-16\"?>" << std::endl;
+		archive_info_xml->writeToOstream(out, std::string(), FALSE);
+		out.close();
+	}
+
 	std::cout << std::endl;
 }
 
