@@ -262,7 +262,7 @@ void hpa_converter::save_oar_objects()
 		std::string linkset_name = "";
 		std::string linkset_id = "";
 
-		LLVector3 root_position(0.0, 0.0, 0.0);
+		LLVector3d root_position(0.0, 0.0, 0.0);
 		LLQuaternion root_rotation(0.0, 0.0, 0.0, 0.0);
 
 		LLSD plsd=(*iter)["Object"];
@@ -427,12 +427,25 @@ void hpa_converter::save_oar_objects()
 
 			// Transforms
 
-			//need groupposition and different branches for root and children
-			LLXMLNodePtr position_xml = prim_xml->createChild("OffsetPosition", FALSE);
-			LLVector3d position = ll_vector3d_from_sd(prim["position"]);
-			position_xml->createChild("X", FALSE)->setValue(llformat("%.5f", position.mdV[VX]));
-			position_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", position.mdV[VY]));
-			position_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", position.mdV[VZ]));
+			LLXMLNodePtr group_position_xml = prim_xml->createChild("GroupPosition", FALSE);
+
+			if(is_root_prim)
+			{
+				root_position = ll_vector3d_from_sd(prim["position"]);
+				//used in determining the filename
+				pretty_position = llformat("%0.f_%0.f_%0.f", root_position.mdV[VX], root_position.mdV[VY], root_position.mdV[VZ]);
+			}
+
+			//group_position is always the position of the root prim
+			group_position_xml->createChild("X", FALSE)->setValue(llformat("%.5f", root_position.mdV[VX]));
+			group_position_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", root_position.mdV[VY]));
+			group_position_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", root_position.mdV[VZ]));
+
+			LLXMLNodePtr offset_position_xml = prim_xml->createChild("OffsetPosition", FALSE);
+			LLVector3d position = root_position - ll_vector3d_from_sd(prim["position"]);
+			offset_position_xml->createChild("X", FALSE)->setValue(llformat("%.5f", position.mdV[VX]));
+			offset_position_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", position.mdV[VY]));
+			offset_position_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", position.mdV[VZ]));
 
 			LLXMLNodePtr scale_xml = prim_xml->createChild("Scale", FALSE);
 			LLVector3d scale = ll_vector3d_from_sd(prim["scale"]);
@@ -447,12 +460,6 @@ void hpa_converter::save_oar_objects()
 			rotation_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", rotation.mQ[VY]));
 			rotation_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", rotation.mQ[VZ]));
 			rotation_xml->createChild("W", FALSE)->setValue(llformat("%.5f", rotation.mQ[VW]));
-
-			//if this is the root prim, set the prettified position
-			if(is_root_prim)
-			{
-				pretty_position = llformat("%0.f_%0.f_%0.f", position.mdV[VX], position.mdV[VY], position.mdV[VZ]);
-			}
 
 			// Flags
 			if(prim["phantom"].asBoolean())
