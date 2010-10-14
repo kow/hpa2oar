@@ -37,6 +37,8 @@
 #include "lldir.h"
 #include "llapr.h"
 
+#include "llrand.h"
+
 #include <iostream>
 #include <fstream>
 
@@ -248,6 +250,9 @@ void hpa_converter::save_oar_objects()
 	//LLSD to HPA converter from exporttracker.cpp
 	//now an LLSD to OAR converter
 
+	//I don't really think this particularly matters, but it should probably be the same for every object.
+	U32 region_handle = ll_rand(U32_MAX - 1);
+
 	for(LLSD::array_iterator iter = mOARFileContents.beginArray();
 		iter != mOARFileContents.endArray();
 		++iter)
@@ -268,6 +273,7 @@ void hpa_converter::save_oar_objects()
 		LLSD plsd=(*iter)["Object"];
 
 		bool is_root_prim = true;
+		U32 link_num = 1;
 
 		//for every prim in the linkset
 		for(LLSD::array_iterator link_iter = plsd.beginArray();
@@ -401,20 +407,21 @@ void hpa_converter::save_oar_objects()
 
 
 
-
-			//Properties
+			//////////////
+			//Properties//
+			//////////////
 
 			if(prim.has("name"))
-				prim_xml->createChild("Name", FALSE)->setStringValue(std::string(prim["name"].asString()));
+				prim_xml->createChild("Name", FALSE)->setStringValue(prim["name"].asString());
 			else
 				prim_xml->createChild("Name", FALSE)->setStringValue(object_uuid.asString());
 
 			if(prim.has("description"))
-				prim_xml->createChild("Description", FALSE)->setStringValue(std::string(prim["description"].asString()));
+				prim_xml->createChild("Description", FALSE)->setStringValue(prim["description"].asString());
 			else
 				prim_xml->createChild("Description", FALSE)->setStringValue(std::string(""));
 
-			prim_xml->createChild("uuid",FALSE)->setValue(object_uuid.asString());
+			prim_xml->createChild("UUID",FALSE)->createChild("Guid", FALSE)->setValue(object_uuid.asString());
 
 			//if this is the root prim, set the linkset name
 			if(is_root_prim)
@@ -425,7 +432,24 @@ void hpa_converter::save_oar_objects()
 					linkset_name = object_uuid.asString();
 			}
 
-			// Transforms
+			if(prim.has("material"))
+				prim_xml->createChild("Material", FALSE)->setStringValue(prim["material"].asString());
+			else
+				prim_xml->createChild("Material", FALSE)->setStringValue(std::string("3"));
+
+			prim_xml->createChild("AllowedDrop", FALSE)->setStringValue(std::string("false"));
+			prim_xml->createChild("CreatorID",FALSE)->createChild("Guid", FALSE)->setValue(LLUUID::null.asString());
+			//make a normal-looking localid
+			prim_xml->createChild("LocalId",FALSE)->setValue(llformat("%u", ll_rand(U32_MAX - 10000) + 9999));
+
+			prim_xml->createChild("LinkNum",FALSE)->setValue(llformat("%u", link_num));
+
+			prim_xml->createChild("RegionHandle",FALSE)->setValue(llformat("%u", region_handle));
+
+
+			//////////////
+			//Transforms//
+			//////////////
 
 			LLXMLNodePtr group_position_xml = prim_xml->createChild("GroupPosition", FALSE);
 
@@ -452,6 +476,12 @@ void hpa_converter::save_oar_objects()
 			scale_xml->createChild("X", FALSE)->setValue(llformat("%.5f", scale.mdV[VX]));
 			scale_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", scale.mdV[VY]));
 			scale_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", scale.mdV[VZ]));
+
+			//apparently shape wants a copy of this too, whatever.
+			LLXMLNodePtr shape_scale_xml = shape_xml->createChild("Scale", FALSE);
+			shape_scale_xml->createChild("X", FALSE)->setValue(llformat("%.5f", scale.mdV[VX]));
+			shape_scale_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", scale.mdV[VY]));
+			shape_scale_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", scale.mdV[VZ]));
 
 			//This is probably wrong! This may be absolute rotations where it's wanting relative from the root's rot!
 			LLXMLNodePtr rotation_xml = prim_xml->createChild("OffsetRotation", FALSE);
@@ -842,6 +872,7 @@ void hpa_converter::save_oar_objects()
 
 			//obviously, none of the next prims are going to be root prims
 			is_root_prim = false;
+			++link_num;
 		}
 		// Create a file stream and write to it
 		std::string linkset_file_path = outputPath + sep + "objects" + sep +
