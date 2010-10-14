@@ -112,7 +112,7 @@ void hpa_converter::run()
 
 	printinfo("Copying assets");
 	//skip this for now
-	//copy_all_assets();
+	copy_all_assets();
 	load_hpa(path);
 	printinfo(llformat("Loaded %u linksets.",mOARFileContents.size()));
 	printinfo("Saving linksets in OAR format");
@@ -702,7 +702,19 @@ void hpa_converter::save_oar_objects()
 				sculpt.getSculptTexture().toString(sculpttexture);
 				prim_xml->createChild("sculptmap_uuid", FALSE)->setValue(sculpttexture);
 			}
-			//<texture>
+
+			/*
+ ________________________________________
+< deprecated, needs to be packed instead >
+ ----------------------------------------
+        \   ^__^
+         \  (oo)\_______
+            (__)\       )\/\
+                ||----w |
+                ||     ||
+
+
+			//<TextureEntry>
 			LLXMLNodePtr texture_xml = prim_xml->createChild("TextureEntry", FALSE);
 			// Textures
 			LLSD te_llsd;
@@ -717,17 +729,6 @@ void hpa_converter::save_oar_objects()
 				object.setTE(U8(i), tex);
 			}
 
-			/*
- ________________________________________
-< deprecated, needs to be packed instead >
- ----------------------------------------
-        \   ^__^
-         \  (oo)\_______
-            (__)\       )\/\
-                ||----w |
-                ||     ||
-			 */
-
 			for (int i = 0; i < tes.size(); i++)
 			{
 				LLTextureEntry tex;
@@ -736,14 +737,6 @@ void hpa_converter::save_oar_objects()
 				//te_llsd.append(object->getTE(i)->asLLSD());
 				std::list<LLUUID>::iterator iter;
 
-				/* this loop keeps track of seen textures, replace with
-				emerald version.
-				for(iter = textures.begin(); iter != textures.end() ; iter++)
-				{
-					if( (*iter)==object->getTE(i)->getID())
-						alreadyseen=true;
-				}
-	*/
 				//<face id=0>
 				LLXMLNodePtr face_xml = texture_xml->createChild("face", FALSE);
 				//This may be a hack, but it's ok since we're not using id in this code. We set id differently because for whatever reason
@@ -803,7 +796,9 @@ void hpa_converter::save_oar_objects()
 				//<mapping val="0" />
 			} // end for each texture
 
-			//end DEPRECTAION
+			//end DEPRECATION
+
+			*/
 
 
 			//<inventory>
