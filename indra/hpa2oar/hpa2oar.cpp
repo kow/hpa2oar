@@ -262,6 +262,9 @@ void hpa_converter::save_oar_objects()
 		std::string linkset_name = "";
 		std::string linkset_id = "";
 
+		LLVector3 root_position(0.0, 0.0, 0.0);
+		LLQuaternion root_rotation(0.0, 0.0, 0.0, 0.0);
+
 		LLSD plsd=(*iter)["Object"];
 
 		bool is_root_prim = true;
@@ -426,16 +429,16 @@ void hpa_converter::save_oar_objects()
 
 			//need groupposition and different branches for root and children
 			LLXMLNodePtr position_xml = prim_xml->createChild("OffsetPosition", FALSE);
-			LLVector3 position = ll_vector3_from_sd(prim["position"]);
-			position_xml->createChild("x", FALSE)->setValue(llformat("%.5f", position.mV[VX]));
-			position_xml->createChild("y", FALSE)->setValue(llformat("%.5f", position.mV[VY]));
-			position_xml->createChild("z", FALSE)->setValue(llformat("%.5f", position.mV[VZ]));
+			LLVector3d position = ll_vector3d_from_sd(prim["position"]);
+			position_xml->createChild("X", FALSE)->setValue(llformat("%.5f", position.mdV[VX]));
+			position_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", position.mdV[VY]));
+			position_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", position.mdV[VZ]));
 
 			LLXMLNodePtr scale_xml = prim_xml->createChild("Scale", FALSE);
-			LLVector3 scale = ll_vector3_from_sd(prim["scale"]);
-			scale_xml->createChild("X", FALSE)->setValue(llformat("%.5f", scale.mV[VX]));
-			scale_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", scale.mV[VY]));
-			scale_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", scale.mV[VZ]));
+			LLVector3d scale = ll_vector3d_from_sd(prim["scale"]);
+			scale_xml->createChild("X", FALSE)->setValue(llformat("%.5f", scale.mdV[VX]));
+			scale_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", scale.mdV[VY]));
+			scale_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", scale.mdV[VZ]));
 
 			//This is probably wrong! This may be absolute rotations where it's wanting relative from the root's rot!
 			LLXMLNodePtr rotation_xml = prim_xml->createChild("OffsetRotation", FALSE);
@@ -448,7 +451,7 @@ void hpa_converter::save_oar_objects()
 			//if this is the root prim, set the prettified position
 			if(is_root_prim)
 			{
-				pretty_position = llformat("%0.f_%0.f_%0.f", position.mV[VX], position.mV[VY], position.mV[VZ]);
+				pretty_position = llformat("%0.f_%0.f_%0.f", position.mdV[VX], position.mdV[VY], position.mdV[VZ]);
 			}
 
 			// Flags
@@ -799,10 +802,12 @@ void hpa_converter::save_oar_objects()
 					else
 					{
 						//<ItemID><Guid>673b00e8-990f-3078-9156-c7f7b4a5f86c</Guid></ItemID>
-						 //welp, we don't have an asset id, assume that the backup's screwed and has been using the itemid as the assetid
-						 field_xml->createChild("ItemID", FALSE)->createChild("Guid", FALSE)->setValue(LLUUID::generate().asString());
+						//welp, we don't have an asset id, assume that the backup's screwed and has been using the itemid as the assetid
+						LLUUID rand_itemid;
+						rand_itemid.generate();
+						field_xml->createChild("ItemID", FALSE)->createChild("Guid", FALSE)->setValue(rand_itemid.asString());
 						//<AssetID><Guid>673b00e8-990f-3078-9156-c7f7b4a5f86c</Guid></AssetID>
-						 field_xml->createChild("AssetID", FALSE)->createChild("Guid", FALSE)->setValue(item["item_id"].asString());
+						field_xml->createChild("AssetID", FALSE)->createChild("Guid", FALSE)->setValue(item["item_id"].asString());
 					}
 					   //<name>blah blah</name>
 					field_xml->createChild("Name", FALSE)->setValue(item["name"].asString());
