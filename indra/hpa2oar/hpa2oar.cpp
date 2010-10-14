@@ -894,7 +894,7 @@ void hpa_converter::save_oar_objects()
 	}
 
 	// Create the archive.xml
-	LLXMLNode* archive_info_xml = LLXMLNode("archive", FALSE);
+	LLXMLNode* archive_info_xml = new LLXMLNode("archive", FALSE);
 
 	//We use the 0.1 format for now.
 	archive_info_xml->createChild("major_version", TRUE)->setValue("0");
