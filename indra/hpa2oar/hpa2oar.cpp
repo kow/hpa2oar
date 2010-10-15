@@ -418,7 +418,29 @@ void hpa_converter::save_oar_objects()
 			F32 taper_y = (1.f - volume_params.getRatioY()) * 100.f + 100.f;
 			shape_xml->createChild("PathScaleY", FALSE)->setFloatValue(taper_y);
 		
+			const char	*selected_hole	= "1";
+			switch (hole)
+			{
+			case LL_PCODE_HOLE_CIRCLE:
+				selected_hole = "Circle";
+				break;
+			case LL_PCODE_HOLE_SQUARE:
+				selected_hole = "Square";
+				break;
+			case LL_PCODE_HOLE_TRIANGLE:
+				selected_hole = "Triangle";
+				break;
+			case LL_PCODE_HOLE_SAME:
+			default:
+				selected_hole = "Same";
+				break;
+			}
 
+			//<ProfileHollow>2499</ProfileHollow>
+			shape_xml->createChild("ProfileHollow", FALSE)->setIntValue(volume_params.getHollow() * 50000);
+
+			//<HollowShape>Triangle</HollowShape>
+			shape_xml->createChild("HollowShape", FALSE)->setStringValue(selected_hole);
 
 			//////////////
 			//Properties//
@@ -524,8 +546,7 @@ void hpa_converter::save_oar_objects()
 			// Compute cut and advanced cut from S and T
 			F32 begin_t = volume_params.getBeginT();
 			F32 end_t	= volume_params.getEndT();
-			// Hollowness
-			F32 hollow = volume_params.getHollow();
+
 			// Twist
 			F32 twist		= volume_params.getTwist() * 180.0;
 			F32 twist_begin = volume_params.getTwistBegin() * 180.0;
@@ -620,6 +641,7 @@ void hpa_converter::save_oar_objects()
 			LLXMLNodePtr twist_xml = prim_xml->createChild("twist", FALSE);
 			twist_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", twist_begin));
 			twist_xml->createChild("end", TRUE)->setValue(llformat("%.5f", twist));
+			/*
 			// All hollow objects allow a shape to be selected.
 			if (hollow > 0.f)
 			{
@@ -645,6 +667,7 @@ void hpa_converter::save_oar_objects()
 				hollow_xml->createChild("amount", TRUE)->setValue(llformat("%.5f", hollow * 100.0));
 				hollow_xml->createChild("shape", TRUE)->setValue(llformat("%s", selected_hole));
 			}
+			*/
 			// Extra params
 			// Flexible
 			if(prim.has("flexible"))
@@ -779,13 +802,17 @@ is packed into a base64-encoded string. Nice. I don't even know if it's right
 				LLSDSerialize::toXML(osd_tes, out);
 				out.close();
 
-				if(!gDirUtilp->fileExists("TEUnscrewer.exe")) llerrs << "Then who was TEUnscrewer.exe?" << llendl;
+				std::string exe_path = gDirUtilp->getExecutableDir();
+				exe_path += gDirUtilp->getDirDelimiter();
+				exe_path += "TEUnscrewer.exe";
+
+				if(!gDirUtilp->fileExists(exe_path)) llerrs << "Then who was TEUnscrewer.exe?" << llendl;
 
 //DUMB DUMB DUMB
 #if !LL_WINDOWS
 				system("mono TEUnscrewer.exe");
 #else
-				system("TEUnscrewer.exe");
+				system(exe_path.c_str());
 #endif
 
 				//the TE unscrewer will have written a file for us, hoorah
