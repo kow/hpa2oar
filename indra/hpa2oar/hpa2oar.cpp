@@ -115,6 +115,12 @@ void hpa_converter::run()
 	copy_all_assets();
 	load_hpa(path);
 	printinfo(llformat("Loaded %u linksets.",mOARFileContents.size()));
+
+	//DEBUG CODE
+	llofstream export_file(path + ".llsd",std::ios_base::app | std::ios_base::out);
+	LLSDSerialize::toPrettyXML(mOARFileContents, export_file);
+	export_file.close();
+
 	printinfo("Saving linksets in OAR format (go grab a coffee)");
 	save_oar_objects();
 	printinfo(
@@ -405,6 +411,13 @@ void hpa_converter::save_oar_objects()
 			//<PathBegin>0</PathBegin>
 			//<PathEnd>0</PathEnd>
 
+			//<PathScaleX>115</PathScaleX>
+			F32 taper_x = (1.f - volume_params.getRatioX()) * 100.f + 100.f;
+			shape_xml->createChild("PathScaleX", FALSE)->setFloatValue(taper_x);
+			//<PathScaleY>75</PathScaleY>
+			F32 taper_y = (1.f - volume_params.getRatioY()) * 100.f + 100.f;
+			shape_xml->createChild("PathScaleY", FALSE)->setFloatValue(taper_y);
+		
 
 
 			//////////////
@@ -466,7 +479,7 @@ void hpa_converter::save_oar_objects()
 			group_position_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", root_position.mdV[VZ]));
 
 			LLXMLNodePtr offset_position_xml = prim_xml->createChild("OffsetPosition", FALSE);
-			LLVector3d position = root_position - ll_vector3d_from_sd(prim["position"]);
+			LLVector3d position = ll_vector3d_from_sd(prim["position"]) - root_position;
 			offset_position_xml->createChild("X", FALSE)->setValue(llformat("%.5f", position.mdV[VX]));
 			offset_position_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", position.mdV[VY]));
 			offset_position_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", position.mdV[VZ]));
@@ -484,7 +497,7 @@ void hpa_converter::save_oar_objects()
 			shape_scale_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", scale.mdV[VZ]));
 
 			//This is probably wrong! This may be absolute rotations where it's wanting relative from the root's rot!
-			LLXMLNodePtr rotation_xml = prim_xml->createChild("OffsetRotation", FALSE);
+			LLXMLNodePtr rotation_xml = prim_xml->createChild("RotationOffset", FALSE);
 			LLQuaternion rotation = ll_quaternion_from_sd(prim["rotation"]);
 			rotation_xml->createChild("X", FALSE)->setValue(llformat("%.5f", rotation.mQ[VX]));
 			rotation_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", rotation.mQ[VY]));
