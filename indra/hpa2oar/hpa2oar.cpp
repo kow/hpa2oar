@@ -115,7 +115,7 @@ void hpa_converter::run()
 	copy_all_assets();
 	load_hpa(path);
 	printinfo(llformat("Loaded %u linksets.",mOARFileContents.size()));
-	printinfo("Saving linksets in OAR format");
+	printinfo("Saving linksets in OAR format (go grab a coffee)");
 	save_oar_objects();
 	printinfo(
 "\n	     _                  \n"
@@ -704,9 +704,8 @@ void hpa_converter::save_oar_objects()
 			}
 
 			/*
- ________________________________________
-< deprecated, needs to be packed instead >
- ----------------------------------------
+< stupid workaround for TEs >
+ ---------------------------
         \   ^__^
          \  (oo)\_______
             (__)\       )\/\
@@ -714,92 +713,94 @@ void hpa_converter::save_oar_objects()
                 ||     ||
 
 
-			//<TextureEntry>
-			LLXMLNodePtr texture_xml = prim_xml->createChild("TextureEntry", FALSE);
-			// Textures
-			LLSD te_llsd;
-			LLSD tes = prim["textures"];
-			LLPrimitive object;
-			object.setNumTEs(U8(tes.size()));
+Imagine this: This is packed to LLSD/XML, from LLSD.
+Then it is unpacked into OSD. Then it is repacked into a bitfield.
+That bitfield is then packed into a binary blob, and then the binary blob
+is packed into a base64-encoded string. Nice. I don't even know if it's right
+			 */
 
-			for (int i = 0; i < tes.size(); i++)
+
+			LLSD osd_tes; //textureentities to be parsed by the OSD parser
+			LLSD default_face; //the default face (which isn't even really used)
+
+			for(int color_num = 0; color_num<4; ++color_num)
+				default_face["colors"][color_num] = 0.;
+
+			default_face["scales"] = 1.;
+			default_face["scalet"] = 1.;
+			default_face["offsets"] = 0.;
+			default_face["offsett"] = 0.;
+			default_face["imagerot"] = 0.;
+			default_face["bump"] = 0;
+			default_face["shiny"] = 0;
+			default_face["fullbright"] = false;
+			default_face["media_flags"] = 0;
+			default_face["mapping"] = 0;
+			default_face["glow"] = 0.;
+			default_face["imageid"] = LLUUID("89556747-24cb-43ed-920b-47caed15465f"); //plywood
+
+			osd_tes.append(default_face);
+
+			LLSD te_faces = prim["textures"];
+
+			for (int i = 0; i < te_faces.size(); i++)
 			{
-				LLTextureEntry tex;
-				tex.fromLLSD(tes[i]);
-				object.setTE(U8(i), tex);
+				te_faces[i]["face_number"] = i; //I hope these are in order!
+				te_faces[i]["mapping"] = 0; //hmm, looks like the mapping type isn't in the HPA file format
+				te_faces[i]["fullbright"] = te_faces[i]["fullbright"].asBoolean();
+
+				osd_tes.append(te_faces[i]);
 			}
 
-			for (int i = 0; i < tes.size(); i++)
+			std::string encoded_te = "";
+
+			std::string temp_te_path = "temp_te.xml";
+			llofstream out(temp_te_path,std::ios_base::out | std::ios_base::trunc);
+
+			if (!out.good())
 			{
-				LLTextureEntry tex;
-				tex.fromLLSD(tes[i]);
-				//bool alreadyseen=false;
-				//te_llsd.append(object->getTE(i)->asLLSD());
-				std::list<LLUUID>::iterator iter;
+				llwarns << "\nUnable to open \"" + temp_te_path + "\" for output." << llendl;
+			}
+			else
+			{
+				LLSDSerialize::toXML(osd_tes, out);
+				out.close();
 
-				//<face id=0>
-				LLXMLNodePtr face_xml = texture_xml->createChild("face", FALSE);
-				//This may be a hack, but it's ok since we're not using id in this code. We set id differently because for whatever reason
-				//llxmlnode filters a few parameters including ID. -Patrick Sapinski (Friday, September 25, 2009)
-				face_xml->mID = llformat("%d", i);
-				//<tile u="-1" v="1" />
-				//object->getTE(face)->mScaleS
-				//object->getTE(face)->mScaleT
-				LLXMLNodePtr tile_xml = face_xml->createChild("tile", FALSE);
-				tile_xml->createChild("u", TRUE)->setValue(llformat("%.5f", object.getTE(i)->mScaleS));
-				tile_xml->createChild("v", TRUE)->setValue(llformat("%.5f", object.getTE(i)->mScaleT));
-				//<offset u="0" v="0" />
-				//object->getTE(face)->mOffsetS
-				//object->getTE(face)->mOffsetT
-				LLXMLNodePtr offset_xml = face_xml->createChild("offset", FALSE);
-				offset_xml->createChild("u", TRUE)->setValue(llformat("%.5f", object.getTE(i)->mOffsetS));
-				offset_xml->createChild("v", TRUE)->setValue(llformat("%.5f", object.getTE(i)->mOffsetT));
-				//<rotation w="0" />
-				//object->getTE(face)->mRotation
-				LLXMLNodePtr rotation_xml = face_xml->createChild("rotation", FALSE);
-				rotation_xml->createChild("w", TRUE)->setValue(llformat("%.5f", (object.getTE(i)->mRotation * RAD_TO_DEG)));
-				//<image_file><![CDATA[76a0319a-e963-44b0-9f25-127815226d71.tga]]></image_file>
-				//<image_uuid>76a0319a-e963-44b0-9f25-127815226d71</image_uuid>
-				LLUUID texture = object.getTE(i)->getID();
+				if(!gDirUtilp->fileExists("TEUnscrewer.exe")) llerrs << "Then who was TEUnscrewer.exe?" << llendl;
 
-				face_xml->createChild("image_uuid", FALSE)->setValue(texture.asString());
-				//<color r="255" g="255" b="255" />
-				LLXMLNodePtr color_xml = face_xml->createChild("color", FALSE);
-				LLColor4 color = object.getTE(i)->getColor();
-				color_xml->createChild("r", TRUE)->setValue(llformat("%u", (int)(color.mV[VRED] * 255.f)));
-				color_xml->createChild("g", TRUE)->setValue(llformat("%u", (int)(color.mV[VGREEN] * 255.f)));
-				color_xml->createChild("b", TRUE)->setValue(llformat("%u", (int)(color.mV[VBLUE] * 255.f)));
-				//<transparency val="0" />
-				LLXMLNodePtr transparency_xml = face_xml->createChild("transparency", FALSE);
-				transparency_xml->createChild("val", TRUE)->setValue(llformat("%u", (int)((1.f - color.mV[VALPHA]) * 100.f)));
-				//<glow val="0" />
-				//object->getTE(face)->getGlow()
-				LLXMLNodePtr glow_xml = face_xml->createChild("glow", FALSE);
-				glow_xml->createChild("val", TRUE)->setValue(llformat("%.5f", object.getTE(i)->getGlow()));
-				//HACK! primcomposer chokes if we have fullbright but don't specify shine+bump.
-				//<fullbright val="false" />
-				//<shine val="0" />
-				//<bump val="0" />
-				if(object.getTE(i)->getFullbright() || object.getTE(i)->getShiny() || object.getTE(i)->getBumpmap())
+//DUMB DUMB DUMB
+#if !LL_WINDOWS
+				system("mono TEUnscrewer.exe");
+#else
+				system("TEUnscrewer.exe");
+#endif
+
+				//the TE unscrewer will have written a file for us, hoorah
+
+				std::string encoded_te_path = "encoded_te.txt";
+				llifstream in(encoded_te_path,std::ios_base::in);
+
+				if (!in.is_open())
 				{
-					std::string temp = "false";
-					if(object.getTE(i)->getFullbright())
-						temp = "true";
-					LLXMLNodePtr fullbright_xml = face_xml->createChild("fullbright", FALSE);
-					fullbright_xml->createChild("val", TRUE)->setValue(temp);
-					LLXMLNodePtr shine_xml = face_xml->createChild("shine", FALSE);
-					shine_xml->createChild("val", TRUE)->setValue(llformat("%u",object.getTE(i)->getShiny()));
-					LLXMLNodePtr bumpmap_xml = face_xml->createChild("bump", FALSE);
-					bumpmap_xml->createChild("val", TRUE)->setValue(llformat("%u",object.getTE(i)->getBumpmap()));
+					llwarns << "\nUnable to open \"" + encoded_te_path + "\" for input." << llendl;
+				}
+				else
+				{
+					std::getline(in, encoded_te);
+
+					//make sure to get rid of whitespace
+					encoded_te = encoded_te.substr(0, encoded_te.find_last_not_of("\n \t")-1);
+
+					LLFile::remove(encoded_te_path);
 				}
 
-				//<mapping val="0" />
-			} // end for each texture
+				LLFile::remove(temp_te_path);
+			}
 
-			//end DEPRECATION
+			shape_xml->createChild("TextureEntry", FALSE)->setValue(encoded_te);
 
-			*/
 
+			//END STUPID WORKAROUND
 
 			//<inventory>
 
