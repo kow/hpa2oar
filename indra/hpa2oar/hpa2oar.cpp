@@ -444,6 +444,36 @@ void hpa_converter::save_oar_objects()
 			//<HollowShape>Triangle</HollowShape>
 			shape_xml->createChild("HollowShape", FALSE)->setStringValue(selected_hole);
 
+			//<PathShearX>206</PathShearX>
+			F32 shear_x = volume_params.getShearX();
+			shear_x = shear_x / 0.01;
+			if (shear_x < 0)
+				shear_x = shear_x + 256;
+			shape_xml->createChild("PathShearX", FALSE)->setIntValue(shear_x);
+
+			//<PathShearY>30</PathShearY>
+			F32 shear_y = volume_params.getShearY();
+			shear_y = shear_y / 0.01;
+			if (shear_y < 0)
+				shear_y = shear_y + 256;
+			shape_xml->createChild("PathShearY", FALSE)->setIntValue(shear_y);
+
+			//<ProfileBegin>11250</ProfileBegin>
+			F32 cut_begin = volume_params.getBeginS();
+			if (cut_begin != 1)
+				cut_begin = cut_begin * 50000;
+			else
+				cut_begin = 0;
+			shape_xml->createChild("ProfileBegin", FALSE)->setIntValue(cut_begin);
+			//<ProfileEnd>0</ProfileEnd>
+			F32 cut_end = volume_params.getEndS();
+			if (cut_end != 1)
+				cut_end = cut_end * 50000;
+			else
+				cut_end = 0;
+			shape_xml->createChild("ProfileEnd", FALSE)->setIntValue(cut_end);
+
+
 			//////////////
 			//Properties//
 			//////////////
@@ -553,7 +583,7 @@ void hpa_converter::save_oar_objects()
 			F32 twist		= volume_params.getTwist() * 180.0;
 			F32 twist_begin = volume_params.getTwistBegin() * 180.0;
 			// Cut interpretation varies based on base object type
-			F32 cut_begin, cut_end, adv_cut_begin, adv_cut_end;
+			F32 adv_cut_begin, adv_cut_end;
 			if ( selected_item == "sphere" || selected_item == "torus" ||
 				 selected_item == "tube"   || selected_item == "ring" )
 			{
