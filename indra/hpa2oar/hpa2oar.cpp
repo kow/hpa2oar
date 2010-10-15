@@ -37,6 +37,8 @@
 #include "lldir.h"
 #include "llapr.h"
 
+#include "llinventorytype.h"
+
 #include "llrand.h"
 
 #include <iostream>
@@ -884,7 +886,11 @@ is packed into a base64-encoded string. Nice. I don't even know if it's right
 					   //<name>blah blah</name>
 					field_xml->createChild("Name", FALSE)->setValue(item["name"].asString());
 					   //<type>10</type>
-					field_xml->createChild("InvType", FALSE)->setValue(llformat("%d", LLAssetType::lookup(item["type"].asString())));
+
+					LLAssetType::EType asset_type = LLAssetType::lookup(item["type"].asString());
+
+					field_xml->createChild("Type", FALSE)->setValue(llformat("%d", asset_type));
+					field_xml->createChild("InvType", FALSE)->setValue(llformat("%d", LLInventoryType::defaultForAssetType(asset_type)));
 				} // end for each inventory item
 				//add this prim to the linkset.
 

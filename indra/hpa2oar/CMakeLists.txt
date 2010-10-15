@@ -9,11 +9,13 @@ include(LLXML)
 include(LLMessage)
 include(LLMath)
 include(LLVFS)
+include(LLInventory)
 include(Linking)
 
 include_directories(
     ${LLCOMMON_INCLUDE_DIRS}
     ${LLXML_INCLUDE_DIRS}
+	${LLINVENTORY_INCLUDE_DIRS}
 	${LLMATH_INCLUDE_DIRS}
 	${LLMESSAGE_INCLUDE_DIRS}
 	${LLPRIMITIVE_INCLUDE_DIRS}
@@ -37,12 +39,13 @@ set_source_files_properties(${HPA2OAR_HEADER_FILES}
 list(APPEND HPA2OAR_SOURCE_FILES ${HPA2OAR_HEADER_FILES})
    
 add_executable(hpa2oar ${HPA2OAR_SOURCE_FILES})
-add_dependencies(hpa2oar llcommon llvfs llxml llmath llmessage llprimitive)
+add_dependencies(hpa2oar llcommon llvfs llxml llmath llinventory llmessage llprimitive)
 
 target_link_libraries(hpa2oar
 	${LLCOMMON_LIBRARIES}
     ${LLXML_LIBRARIES}
 	${LLMATH_LIBRARIES}
+	${LLINVENTORY_LIBRARIES}
 	${LLPRIMITIVE_LIBRARIES}
 	${LLMESSAGE_LIBRARIES}
     ${LLVFS_LIBRARIES}
