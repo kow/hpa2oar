@@ -801,9 +801,6 @@ is packed into a base64-encoded string. Nice. I don't even know if it's right
 				{
 					std::getline(in, encoded_te);
 
-					//make sure to get rid of whitespace
-					encoded_te = encoded_te.substr(0, encoded_te.find_last_not_of("\n \t")-1);
-
 					LLFile::remove(encoded_te_path);
 				}
 
