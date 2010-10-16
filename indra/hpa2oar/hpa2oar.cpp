@@ -41,6 +41,9 @@
 
 #include "llrand.h"
 
+#include "lldatapacker.h"
+#include "llbase64.h"
+
 #include <iostream>
 #include <fstream>
 
@@ -114,7 +117,7 @@ void hpa_converter::run()
 
 	printinfo("Copying assets");
 	//skip this for now
-	copy_all_assets();
+	//copy_all_assets();
 	load_hpa(path);
 	printinfo(llformat("Loaded %u linksets.",mOARFileContents.size()));
 
@@ -682,59 +685,14 @@ void hpa_converter::save_oar_objects()
 			twist_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", twist_begin));
 			twist_xml->createChild("end", TRUE)->setValue(llformat("%.5f", twist));
 
-			// Extra params
-			// Flexible
-			if(prim.has("flexible"))
-			{
-				LLFlexibleObjectData attributes;
-				attributes.fromLLSD(prim["flexible"]);
-				//<flexible>
-				LLXMLNodePtr flex_xml = prim_xml->createChild("flexible", FALSE);
-				//<softness val="2.0">
-				LLXMLNodePtr softness_xml = flex_xml->createChild("softness", FALSE);
-				softness_xml->createChild("val", TRUE)->setValue(llformat("%.5f", (F32)attributes.getSimulateLOD()));
-				//<gravity val="0.3">
-				LLXMLNodePtr gravity_xml = flex_xml->createChild("gravity", FALSE);
-				gravity_xml->createChild("val", TRUE)->setValue(llformat("%.5f", attributes.getGravity()));
-				//<drag val="2.0">
-				LLXMLNodePtr drag_xml = flex_xml->createChild("drag", FALSE);
-				drag_xml->createChild("val", TRUE)->setValue(llformat("%.5f", attributes.getAirFriction()));
-				//<wind val="0.0">
-				LLXMLNodePtr wind_xml = flex_xml->createChild("wind", FALSE);
-				wind_xml->createChild("val", TRUE)->setValue(llformat("%.5f", attributes.getWindSensitivity()));
-				//<tension val="1.0">
-				LLXMLNodePtr tension_xml = flex_xml->createChild("tension", FALSE);
-				tension_xml->createChild("val", TRUE)->setValue(llformat("%.5f", attributes.getTension()));
-				//<force x="0.0" y="0.0" z="0.0" />
-				LLXMLNodePtr force_xml = flex_xml->createChild("force", FALSE);
-				force_xml->createChild("x", TRUE)->setValue(llformat("%.5f", attributes.getUserForce().mV[VX]));
-				force_xml->createChild("y", TRUE)->setValue(llformat("%.5f", attributes.getUserForce().mV[VY]));
-				force_xml->createChild("z", TRUE)->setValue(llformat("%.5f", attributes.getUserForce().mV[VZ]));
-			}
+			std::string packed_params = "";
 
-			// Light
-			if (prim.has("light"))
-			{
-				LLLightParams light;
-				light.fromLLSD(prim["light"]);
-				//<light>
-				LLXMLNodePtr light_xml = prim_xml->createChild("light", FALSE);
-				//<color r="255" g="255" b="255" />
-				LLXMLNodePtr color_xml = light_xml->createChild("color", FALSE);
-				LLColor4 color = light.getColor();
-				color_xml->createChild("r", TRUE)->setValue(llformat("%u", (U32)(color.mV[VRED] * 255)));
-				color_xml->createChild("g", TRUE)->setValue(llformat("%u", (U32)(color.mV[VGREEN] * 255)));
-				color_xml->createChild("b", TRUE)->setValue(llformat("%u", (U32)(color.mV[VBLUE] * 255)));
-				//<intensity val="1.0" />
-				LLXMLNodePtr intensity_xml = light_xml->createChild("intensity", FALSE);
-				intensity_xml->createChild("val", TRUE)->setValue(llformat("%.5f", color.mV[VALPHA]));
-				//<radius val="10.0" />
-				LLXMLNodePtr radius_xml = light_xml->createChild("radius", FALSE);
-				radius_xml->createChild("val", TRUE)->setValue(llformat("%.5f", light.getRadius()));
-				//<falloff val="0.75" />
-				LLXMLNodePtr falloff_xml = light_xml->createChild("falloff", FALSE);
-				falloff_xml->createChild("val", TRUE)->setValue(llformat("%.5f", light.getFalloff()));
-			}
+			if(prim.has("flexible") || prim.has("light"))
+				packed_params = pack_extra_params(prim);
+
+			if(!packed_params.empty())
+				printinfo(packed_params);
+
 			// Sculpt
 			if (prim.has("sculpt"))
 			{
@@ -754,11 +712,11 @@ void hpa_converter::save_oar_objects()
 			}
 
 			//TextureEntry
-			shape_xml->createChild("TextureEntry", FALSE)->setValue(llsd_to_textureentry(prim["textures"]));
+			//shape_xml->createChild("TextureEntry", FALSE)->setValue(llsd_to_textureentry(prim["textures"]));
 
 			//<inventory>
 			prim_xml->createChild("FolderID", FALSE)->createChild("Guid", FALSE)->setValue(object_uuid.asString());
-			LLXMLNodePtr inventory_xml = prim_xml->createChild("TaskInventory", FALSE);
+			LLXMLNodePtr inventory_xml = new LLXMLNode("TaskInventory", FALSE);
 
 			U32 num_of_items = 0;
 
@@ -810,9 +768,9 @@ void hpa_converter::save_oar_objects()
 			}
 
 			//I don't even know if this is right, as far as I can tell InventorySerial isn't even used for anything
-			prim_xml->createChild("InventorySerial", FALSE)->setValue(llformat("%d", num_of_items));
+			//prim_xml->createChild("InventorySerial", FALSE)->setValue(llformat("%d", num_of_items));
 
-			prim_xml->addChild(inventory_xml);
+			//prim_xml->addChild(inventory_xml);
 
 			//check if this is the first prim in the linkset
 			if(is_root_prim)
@@ -1645,7 +1603,7 @@ std::string hpa_converter::llsd_to_textureentry(LLSD te_faces)
 	LLSD default_face; //the default face (which isn't even really used)
 
 	for(int color_num = 0; color_num<4; ++color_num)
-		default_face["colors"][color_num] = 0.;
+		default_face["colors"][color_num] = 1.;
 
 	default_face["scales"] = 1.;
 	default_face["scalet"] = 1.;
@@ -1718,6 +1676,59 @@ std::string hpa_converter::llsd_to_textureentry(LLSD te_faces)
 	}
 
 	return encoded_te;
+}
+
+std::string hpa_converter::pack_extra_params(LLSD extra_params)
+{
+	U8* packed_data = new U8[MAX_BUFFER_SIZE];
+
+	LLDataPackerBinaryBuffer param_packer(packed_data, MAX_BUFFER_SIZE);
+
+	//Opensim expects the ExtraParams to be in this format:
+	//U16 param type : U32 param data length : U8[] param data : ...
+	//Since we need the length, we use a separate packer for the param data
+	//so we can get the length, and then tack it on after
+
+	if(extra_params.has("flexible"))
+	{
+		U8* packed_flex_data = new U8[MAX_BUFFER_SIZE];
+		LLDataPackerBinaryBuffer flex_param_packer(packed_flex_data, MAX_BUFFER_SIZE);
+		LLLightParams flex_params;
+
+		flex_params.fromLLSD(extra_params["flexible"]);
+
+		flex_params.pack(flex_param_packer);
+		S32 flex_param_size = flex_param_packer.getCurrentSize();
+
+		param_packer.packU16(0x10, "paramtype");
+		param_packer.packU32((U32)flex_param_size, "paramsize");
+		param_packer.packBinaryDataFixed(packed_flex_data, flex_param_size, "paramdata");
+
+		delete packed_flex_data;
+	}
+	if(extra_params.has("light"))
+	{
+		U8* packed_light_data = new U8[MAX_BUFFER_SIZE];
+		LLDataPackerBinaryBuffer light_param_packer(packed_light_data, MAX_BUFFER_SIZE);
+		LLLightParams light_params;
+
+		light_params.fromLLSD(extra_params["light"]);
+
+		light_params.pack(light_param_packer);
+		S32 light_param_size = light_param_packer.getCurrentSize();
+
+		param_packer.packU16(0x20, "paramtype");
+		param_packer.packU32((U32)light_param_size, "paramsize");
+		param_packer.packBinaryDataFixed(packed_light_data, light_param_size, "paramdata");
+
+		delete packed_light_data;
+	}
+
+	std::string encoded_params = LLBase64::encode(packed_data, param_packer.getCurrentSize());
+
+	delete packed_data;
+
+	return encoded_params;
 }
 
 ///////////////////////

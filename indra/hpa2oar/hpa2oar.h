@@ -42,6 +42,7 @@ protected:
 	LLSD parse_hpa_linkset(LLXmlTreeNode* group);
 	LLSD parse_hpa_object(LLXmlTreeNode* group);
 	std::string llsd_to_textureentry(LLSD te_faces);
+	std::string pack_extra_params(LLSD extra_params);
 
 	void create_directory_structure();
 	void copy_all_assets();
