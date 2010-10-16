@@ -681,33 +681,7 @@ void hpa_converter::save_oar_objects()
 			LLXMLNodePtr twist_xml = prim_xml->createChild("twist", FALSE);
 			twist_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", twist_begin));
 			twist_xml->createChild("end", TRUE)->setValue(llformat("%.5f", twist));
-			/*
-			// All hollow objects allow a shape to be selected.
-			if (hollow > 0.f)
-			{
-				const char	*selected_hole	= "1";
-				switch (hole)
-				{
-				case LL_PCODE_HOLE_CIRCLE:
-					selected_hole = "Circle";
-					break;
-				case LL_PCODE_HOLE_SQUARE:
-					selected_hole = "Square";
-					break;
-				case LL_PCODE_HOLE_TRIANGLE:
-					selected_hole = "Triangle";
-					break;
-				case LL_PCODE_HOLE_SAME:
-				default:
-					selected_hole = "Same";
-					break;
-				}
-				//<hollow amount="0" shape="1" />
-				LLXMLNodePtr hollow_xml = prim_xml->createChild("hollow", FALSE);
-				hollow_xml->createChild("amount", TRUE)->setValue(llformat("%.5f", hollow * 100.0));
-				hollow_xml->createChild("shape", TRUE)->setValue(llformat("%s", selected_hole));
-			}
-			*/
+
 			// Extra params
 			// Flexible
 			if(prim.has("flexible"))
@@ -779,109 +753,10 @@ void hpa_converter::save_oar_objects()
 				prim_xml->createChild("sculptmap_uuid", FALSE)->setValue(sculpttexture);
 			}
 
-			/*
-< stupid workaround for TEs >
- ---------------------------
-        \   ^__^
-         \  (oo)\_______
-            (__)\       )\/\
-                ||----w |
-                ||     ||
-
-
-Imagine this: This is packed to LLSD/XML, from LLSD.
-Then it is unpacked into OSD. Then it is repacked into a bitfield.
-That bitfield is then packed into a binary blob, and then the binary blob
-is packed into a base64-encoded string. Nice. I don't even know if it's right
-			 */
-
-
-			LLSD osd_tes; //textureentities to be parsed by the OSD parser
-			LLSD default_face; //the default face (which isn't even really used)
-
-			for(int color_num = 0; color_num<4; ++color_num)
-				default_face["colors"][color_num] = 0.;
-
-			default_face["scales"] = 1.;
-			default_face["scalet"] = 1.;
-			default_face["offsets"] = 0.;
-			default_face["offsett"] = 0.;
-			default_face["imagerot"] = 0.;
-			default_face["bump"] = 0;
-			default_face["shiny"] = 0;
-			default_face["fullbright"] = false;
-			default_face["media_flags"] = 0;
-			default_face["mapping"] = 0;
-			default_face["glow"] = 0.;
-			default_face["imageid"] = LLUUID("89556747-24cb-43ed-920b-47caed15465f"); //plywood
-
-			osd_tes.append(default_face);
-
-			LLSD te_faces = prim["textures"];
-
-			for (int i = 0; i < te_faces.size(); i++)
-			{
-				te_faces[i]["face_number"] = i; //I hope these are in order!
-				te_faces[i]["mapping"] = 0; //hmm, looks like the mapping type isn't in the HPA file format
-				te_faces[i]["fullbright"] = te_faces[i]["fullbright"].asBoolean();
-
-				osd_tes.append(te_faces[i]);
-			}
-
-			std::string encoded_te = "";
-
-			std::string temp_te_path = "temp_te.xml";
-			llofstream out(temp_te_path,std::ios_base::out | std::ios_base::trunc);
-
-			if (!out.good())
-			{
-				llwarns << "\nUnable to open \"" + temp_te_path + "\" for output." << llendl;
-			}
-			else
-			{
-				LLSDSerialize::toXML(osd_tes, out);
-				out.close();
-
-				std::string exe_path = gDirUtilp->getExecutableDir();
-				exe_path += gDirUtilp->getDirDelimiter();
-				exe_path += "TEUnscrewer.exe";
-
-				if(!gDirUtilp->fileExists(exe_path)) llerrs << "Then who was TEUnscrewer.exe?" << llendl;
-
-//DUMB DUMB DUMB
-#if !LL_WINDOWS
-				system("mono TEUnscrewer.exe");
-#else
-				system(exe_path.c_str());
-#endif
-
-				//the TE unscrewer will have written a file for us, hoorah
-
-				std::string encoded_te_path = "encoded_te.txt";
-				llifstream in(encoded_te_path,std::ios_base::in);
-
-				if (!in.is_open())
-				{
-					llwarns << "\nUnable to open \"" + encoded_te_path + "\" for input." << llendl;
-				}
-				else
-				{
-					std::getline(in, encoded_te);
-
-					LLFile::remove(encoded_te_path);
-				}
-
-				LLFile::remove(temp_te_path);
-			}
-
-			shape_xml->createChild("TextureEntry", FALSE)->setValue(encoded_te);
-
-
-			//END STUPID WORKAROUND
+			//TextureEntry
+			shape_xml->createChild("TextureEntry", FALSE)->setValue(llsd_to_textureentry(prim["textures"]));
 
 			//<inventory>
-
-
 			prim_xml->createChild("FolderID", FALSE)->createChild("Guid", FALSE)->setValue(object_uuid.asString());
 			LLXMLNodePtr inventory_xml = prim_xml->createChild("TaskInventory", FALSE);
 
@@ -1745,6 +1620,104 @@ LLSD hpa_converter::parse_hpa_object(LLXmlTreeNode* prim)
 			prim_llsd["volume"] = volume_params.asLLSD();
 	}
 	return prim_llsd;
+}
+
+std::string hpa_converter::llsd_to_textureentry(LLSD te_faces)
+{
+	/*
+	< stupid workaround for TEs >
+	 ---------------------------
+			\   ^__^
+			 \  (oo)\_______
+				(__)\       )\/\
+					||----w |
+					||     ||
+
+
+	Imagine this: This is packed to LLSD/XML, from LLSD.
+	Then it is unpacked into OSD. Then it is repacked into a bitfield.
+	That bitfield is then packed into a binary blob, and then the binary blob
+	is packed into a base64-encoded string. Nice. I don't even know if it's right
+	*/
+
+
+	LLSD osd_tes; //textureentities to be parsed by the OSD parser
+	LLSD default_face; //the default face (which isn't even really used)
+
+	for(int color_num = 0; color_num<4; ++color_num)
+		default_face["colors"][color_num] = 0.;
+
+	default_face["scales"] = 1.;
+	default_face["scalet"] = 1.;
+	default_face["offsets"] = 0.;
+	default_face["offsett"] = 0.;
+	default_face["imagerot"] = 0.;
+	default_face["bump"] = 0;
+	default_face["shiny"] = 0;
+	default_face["fullbright"] = false;
+	default_face["media_flags"] = 0;
+	default_face["mapping"] = 0;
+	default_face["glow"] = 0.;
+	default_face["imageid"] = LLUUID("89556747-24cb-43ed-920b-47caed15465f"); //plywood
+
+	osd_tes.append(default_face);
+
+	for (int i = 0; i < te_faces.size(); i++)
+	{
+		te_faces[i]["face_number"] = i; //I hope these are in order!
+		te_faces[i]["mapping"] = 0; //hmm, looks like the mapping type isn't in the HPA file format
+		te_faces[i]["fullbright"] = te_faces[i]["fullbright"].asBoolean();
+
+		osd_tes.append(te_faces[i]);
+	}
+
+	std::string encoded_te = "";
+
+	std::string temp_te_path = "temp_te.xml";
+	llofstream out(temp_te_path,std::ios_base::out | std::ios_base::trunc);
+
+	if (!out.good())
+	{
+		llwarns << "\nUnable to open \"" + temp_te_path + "\" for output." << llendl;
+	}
+	else
+	{
+		LLSDSerialize::toXML(osd_tes, out);
+		out.close();
+
+		std::string exe_path = gDirUtilp->getExecutableDir();
+		exe_path += gDirUtilp->getDirDelimiter();
+		exe_path += "TEUnscrewer.exe";
+
+		if(!gDirUtilp->fileExists(exe_path)) llerrs << "Then who was TEUnscrewer.exe?" << llendl;
+
+//DUMB DUMB DUMB
+#if !LL_WINDOWS
+		system("mono TEUnscrewer.exe");
+#else
+		system(exe_path.c_str());
+#endif
+
+		//the TE unscrewer will have written a file for us, hoorah
+
+		std::string encoded_te_path = "encoded_te.txt";
+		llifstream in(encoded_te_path,std::ios_base::in);
+
+		if (!in.is_open())
+		{
+			llwarns << "\nUnable to open \"" + encoded_te_path + "\" for input." << llendl;
+		}
+		else
+		{
+			std::getline(in, encoded_te);
+
+			LLFile::remove(encoded_te_path);
+		}
+
+		LLFile::remove(temp_te_path);
+	}
+
+	return encoded_te;
 }
 
 ///////////////////////
