@@ -527,13 +527,22 @@ void hpa_converter::save_oar_objects()
 				pretty_position = llformat("%0.f_%0.f_%0.f", root_position.mdV[VX], root_position.mdV[VY], root_position.mdV[VZ]);
 			}
 
+			//This is probably wrong! This may be absolute rotations where it's wanting relative from the root's rot!
+			LLXMLNodePtr rotation_xml = prim_xml->createChild("RotationOffset", FALSE);
+			LLQuaternion rotation = ll_quaternion_from_sd(prim["rotation"]);
+
+			if(is_root_prim)
+				root_rotation = rotation;
+			else
+				rotation = rotation * ~root_rotation;
+
 			//group_position is always the position of the root prim
 			group_position_xml->createChild("X", FALSE)->setValue(llformat("%.5f", root_position.mdV[VX]));
 			group_position_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", root_position.mdV[VY]));
 			group_position_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", root_position.mdV[VZ]));
 
 			LLXMLNodePtr offset_position_xml = prim_xml->createChild("OffsetPosition", FALSE);
-			LLVector3d position = ll_vector3d_from_sd(prim["position"]) - root_position;
+			LLVector3d position = (ll_vector3d_from_sd(prim["position"]) - root_position) * ~root_rotation;
 			offset_position_xml->createChild("X", FALSE)->setValue(llformat("%.5f", position.mdV[VX]));
 			offset_position_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", position.mdV[VY]));
 			offset_position_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", position.mdV[VZ]));
@@ -550,9 +559,8 @@ void hpa_converter::save_oar_objects()
 			shape_scale_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", scale.mdV[VY]));
 			shape_scale_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", scale.mdV[VZ]));
 
-			//This is probably wrong! This may be absolute rotations where it's wanting relative from the root's rot!
-			LLXMLNodePtr rotation_xml = prim_xml->createChild("RotationOffset", FALSE);
-			LLQuaternion rotation = ll_quaternion_from_sd(prim["rotation"]);
+
+
 			rotation_xml->createChild("X", FALSE)->setValue(llformat("%.5f", rotation.mQ[VX]));
 			rotation_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", rotation.mQ[VY]));
 			rotation_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", rotation.mQ[VZ]));
