@@ -413,9 +413,6 @@ void hpa_converter::save_oar_objects()
 			//<PathCurve>16</PathCurve>
 			shape_xml->createChild("PathCurve", FALSE)->setIntValue(path);
 
-			//<PathBegin>0</PathBegin>
-			//<PathEnd>0</PathEnd>
-
 			//<PathScaleX>115</PathScaleX>
 			F32 taper_x = (1.f - volume_params.getRatioX()) * 100.f + 100.f;
 			shape_xml->createChild("PathScaleX", FALSE)->setFloatValue(taper_x);
@@ -471,10 +468,27 @@ void hpa_converter::save_oar_objects()
 			//<ProfileEnd>0</ProfileEnd>
 			F32 cut_end = volume_params.getEndS();
 			if (cut_end != 1)
-				cut_end = cut_end * 50000;
+				cut_end = (1 - cut_end) * 50000;
 			else
 				cut_end = 0;
 			shape_xml->createChild("ProfileEnd", FALSE)->setIntValue(cut_end);
+
+
+			//<PathBegin>0</PathBegin>
+			F32 adv_cut_begin = volume_params.getBeginT();
+			if (adv_cut_begin != 1)
+				adv_cut_begin = adv_cut_begin * 50000;
+			else
+				adv_cut_begin = 0;
+			shape_xml->createChild("PathBegin", FALSE)->setIntValue(adv_cut_begin);
+			//<PathEnd>0</PathEnd>
+			F32 adv_cut_end = volume_params.getEndT();
+			if (adv_cut_end != 1)
+				adv_cut_end = (1 - adv_cut_end) * 50000;
+			else
+				adv_cut_end = 0;
+			shape_xml->createChild("PathEnd", FALSE)->setIntValue(adv_cut_end);
+
 
 
 			//////////////
@@ -569,6 +583,26 @@ void hpa_converter::save_oar_objects()
 			rotation_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", rotation.mQ[VZ]));
 			rotation_xml->createChild("W", FALSE)->setValue(llformat("%.5f", rotation.mQ[VW]));
 
+			// Twist
+			F32 twist_begin = volume_params.getTwistBegin() * 100;
+			F32 twist		= volume_params.getTwist() * 100;
+			//I fucked up the HPA exporter, this is a temporary fix!
+			if (path == LL_PCODE_PATH_LINE || path == LL_PCODE_PATH_FLEXIBLE)
+			{
+			}
+			else
+			{
+				twist		*= 2;
+				twist_begin	*= 2;
+			}
+			shape_xml->createChild("PathTwistBegin", FALSE)->setIntValue((U32)twist_begin);
+			shape_xml->createChild("PathTwist", FALSE)->setIntValue((U32)twist);
+
+
+			// Revolutions
+			F32 revolutions = (volume_params.getRevolutions() - 1) / 0.015f;
+			shape_xml->createChild("PathRevolutions", FALSE)->setValue(llformat("%u", (U32)revolutions));
+
 			// Flags
 
 			//I really hate libomv
@@ -590,11 +624,7 @@ void hpa_converter::save_oar_objects()
 			F32 begin_t = volume_params.getBeginT();
 			F32 end_t	= volume_params.getEndT();
 
-			// Twist
-			F32 twist		= volume_params.getTwist() * 180.0;
-			F32 twist_begin = volume_params.getTwistBegin() * 180.0;
 			// Cut interpretation varies based on base object type
-			F32 adv_cut_begin, adv_cut_end;
 			if ( selected_item == "sphere" || selected_item == "torus" ||
 				 selected_item == "tube"   || selected_item == "ring" )
 			{
@@ -670,20 +700,17 @@ void hpa_converter::save_oar_objects()
 				F32 radius_offset = volume_params.getRadiusOffset();
 				LLXMLNodePtr radius_offset_xml = prim_xml->createChild("radius_offset", FALSE);
 				radius_offset_xml->createChild("val", TRUE)->setValue(llformat("%.5f", radius_offset));
-				// Revolutions
-				//<revolutions val="1.0" />
-				F32 revolutions = volume_params.getRevolutions();
-				LLXMLNodePtr revolutions_xml = prim_xml->createChild("revolutions", FALSE);
-				revolutions_xml->createChild("val", TRUE)->setValue(llformat("%.5f", revolutions));
 			}
-			//<path_cut begin="0" end="1" />
-			LLXMLNodePtr path_cut_xml = prim_xml->createChild("path_cut", FALSE);
-			path_cut_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", cut_begin));
-			path_cut_xml->createChild("end", TRUE)->setValue(llformat("%.5f", cut_end));
-			//<twist begin="0" end="0" />
-			LLXMLNodePtr twist_xml = prim_xml->createChild("twist", FALSE);
-			twist_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", twist_begin));
-			twist_xml->createChild("end", TRUE)->setValue(llformat("%.5f", twist));
+			////<path_cut begin="0" end="1" />
+			//LLXMLNodePtr path_cut_xml = prim_xml->createChild("path_cut", FALSE);
+			//path_cut_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", cut_begin));
+			//path_cut_xml->createChild("end", TRUE)->setValue(llformat("%.5f", cut_end));
+			////<twist begin="0" end="0" />
+			//LLXMLNodePtr twist_xml = prim_xml->createChild("twist", FALSE);
+			//twist_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", twist_begin));
+			//twist_xml->createChild("end", TRUE)->setValue(llformat("%.5f", twist));
+
+			//Extra Params
 
 			std::string packed_params = "";
 
