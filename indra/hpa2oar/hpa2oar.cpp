@@ -687,11 +687,17 @@ void hpa_converter::save_oar_objects()
 
 			std::string packed_params = "";
 
+			//the params probably aren't right yet.
 			if(prim.has("flexible") || prim.has("light"))
 				packed_params = pack_extra_params(prim);
 
+			LLXMLNodePtr extra_params_xml = prim_xml->createChild("ExtraParams", FALSE);
+
 			if(!packed_params.empty())
+			{
 				printinfo(packed_params);
+				extra_params_xml->setValue(packed_params);
+			}
 
 			// Sculpt
 			if (prim.has("sculpt"))
