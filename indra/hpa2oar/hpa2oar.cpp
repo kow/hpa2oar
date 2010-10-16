@@ -410,9 +410,6 @@ void hpa_converter::save_oar_objects()
 			//<PathCurve>16</PathCurve>
 			shape_xml->createChild("PathCurve", FALSE)->setIntValue(path);
 
-			//<PathBegin>0</PathBegin>
-			//<PathEnd>0</PathEnd>
-
 			//<PathScaleX>115</PathScaleX>
 			F32 taper_x = (1.f - volume_params.getRatioX()) * 100.f + 100.f;
 			shape_xml->createChild("PathScaleX", FALSE)->setFloatValue(taper_x);
@@ -468,10 +465,27 @@ void hpa_converter::save_oar_objects()
 			//<ProfileEnd>0</ProfileEnd>
 			F32 cut_end = volume_params.getEndS();
 			if (cut_end != 1)
-				cut_end = cut_end * 50000;
+				cut_end = (1 - cut_end) * 50000;
 			else
 				cut_end = 0;
 			shape_xml->createChild("ProfileEnd", FALSE)->setIntValue(cut_end);
+
+
+			//<PathBegin>0</PathBegin>
+			F32 adv_cut_begin = volume_params.getBeginT();
+			if (adv_cut_begin != 1)
+				adv_cut_begin = adv_cut_begin * 50000;
+			else
+				adv_cut_begin = 0;
+			shape_xml->createChild("PathBegin", FALSE)->setIntValue(adv_cut_begin);
+			//<PathEnd>0</PathEnd>
+			F32 adv_cut_end = volume_params.getEndT();
+			if (adv_cut_end != 1)
+				adv_cut_end = (1 - adv_cut_end) * 50000;
+			else
+				adv_cut_end = 0;
+			shape_xml->createChild("PathEnd", FALSE)->setIntValue(adv_cut_end);
+
 
 
 			//////////////
@@ -566,6 +580,26 @@ void hpa_converter::save_oar_objects()
 			rotation_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", rotation.mQ[VZ]));
 			rotation_xml->createChild("W", FALSE)->setValue(llformat("%.5f", rotation.mQ[VW]));
 
+			// Twist
+			F32 twist_begin = volume_params.getTwistBegin() * 100;
+			F32 twist		= volume_params.getTwist() * 100;
+			//I fucked up the HPA exporter, this is a temporary fix!
+			if (path == LL_PCODE_PATH_LINE || path == LL_PCODE_PATH_FLEXIBLE)
+			{
+			}
+			else
+			{
+				twist		*= 2;
+				twist_begin	*= 2;
+			}
+			shape_xml->createChild("PathTwistBegin", FALSE)->setIntValue((U32)twist_begin);
+			shape_xml->createChild("PathTwist", FALSE)->setIntValue((U32)twist);
+
+
+			// Revolutions
+			F32 revolutions = (volume_params.getRevolutions() - 1) / 0.015f;
+			shape_xml->createChild("PathRevolutions", FALSE)->setValue(llformat("%u", (U32)revolutions));
+
 			// Flags
 
 			//I really hate libomv
@@ -587,11 +621,7 @@ void hpa_converter::save_oar_objects()
 			F32 begin_t = volume_params.getBeginT();
 			F32 end_t	= volume_params.getEndT();
 
-			// Twist
-			F32 twist		= volume_params.getTwist() * 180.0;
-			F32 twist_begin = volume_params.getTwistBegin() * 180.0;
 			// Cut interpretation varies based on base object type
-			F32 adv_cut_begin, adv_cut_end;
 			if ( selected_item == "sphere" || selected_item == "torus" ||
 				 selected_item == "tube"   || selected_item == "ring" )
 			{
@@ -667,74 +697,69 @@ void hpa_converter::save_oar_objects()
 				F32 radius_offset = volume_params.getRadiusOffset();
 				LLXMLNodePtr radius_offset_xml = prim_xml->createChild("radius_offset", FALSE);
 				radius_offset_xml->createChild("val", TRUE)->setValue(llformat("%.5f", radius_offset));
-				// Revolutions
-				//<revolutions val="1.0" />
-				F32 revolutions = volume_params.getRevolutions();
-				LLXMLNodePtr revolutions_xml = prim_xml->createChild("revolutions", FALSE);
-				revolutions_xml->createChild("val", TRUE)->setValue(llformat("%.5f", revolutions));
 			}
-			//<path_cut begin="0" end="1" />
-			LLXMLNodePtr path_cut_xml = prim_xml->createChild("path_cut", FALSE);
-			path_cut_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", cut_begin));
-			path_cut_xml->createChild("end", TRUE)->setValue(llformat("%.5f", cut_end));
-			//<twist begin="0" end="0" />
-			LLXMLNodePtr twist_xml = prim_xml->createChild("twist", FALSE);
-			twist_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", twist_begin));
-			twist_xml->createChild("end", TRUE)->setValue(llformat("%.5f", twist));
+			////<path_cut begin="0" end="1" />
+			//LLXMLNodePtr path_cut_xml = prim_xml->createChild("path_cut", FALSE);
+			//path_cut_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", cut_begin));
+			//path_cut_xml->createChild("end", TRUE)->setValue(llformat("%.5f", cut_end));
+			////<twist begin="0" end="0" />
+			//LLXMLNodePtr twist_xml = prim_xml->createChild("twist", FALSE);
+			//twist_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", twist_begin));
+			//twist_xml->createChild("end", TRUE)->setValue(llformat("%.5f", twist));
 
 			// Extra params
 			// Flexible
-			if(prim.has("flexible"))
-			{
-				LLFlexibleObjectData attributes;
-				attributes.fromLLSD(prim["flexible"]);
-				//<flexible>
-				LLXMLNodePtr flex_xml = prim_xml->createChild("flexible", FALSE);
-				//<softness val="2.0">
-				LLXMLNodePtr softness_xml = flex_xml->createChild("softness", FALSE);
-				softness_xml->createChild("val", TRUE)->setValue(llformat("%.5f", (F32)attributes.getSimulateLOD()));
-				//<gravity val="0.3">
-				LLXMLNodePtr gravity_xml = flex_xml->createChild("gravity", FALSE);
-				gravity_xml->createChild("val", TRUE)->setValue(llformat("%.5f", attributes.getGravity()));
-				//<drag val="2.0">
-				LLXMLNodePtr drag_xml = flex_xml->createChild("drag", FALSE);
-				drag_xml->createChild("val", TRUE)->setValue(llformat("%.5f", attributes.getAirFriction()));
-				//<wind val="0.0">
-				LLXMLNodePtr wind_xml = flex_xml->createChild("wind", FALSE);
-				wind_xml->createChild("val", TRUE)->setValue(llformat("%.5f", attributes.getWindSensitivity()));
-				//<tension val="1.0">
-				LLXMLNodePtr tension_xml = flex_xml->createChild("tension", FALSE);
-				tension_xml->createChild("val", TRUE)->setValue(llformat("%.5f", attributes.getTension()));
-				//<force x="0.0" y="0.0" z="0.0" />
-				LLXMLNodePtr force_xml = flex_xml->createChild("force", FALSE);
-				force_xml->createChild("x", TRUE)->setValue(llformat("%.5f", attributes.getUserForce().mV[VX]));
-				force_xml->createChild("y", TRUE)->setValue(llformat("%.5f", attributes.getUserForce().mV[VY]));
-				force_xml->createChild("z", TRUE)->setValue(llformat("%.5f", attributes.getUserForce().mV[VZ]));
-			}
+			//if(prim.has("flexible"))
+			//{
+			//	LLFlexibleObjectData attributes;
+			//	attributes.fromLLSD(prim["flexible"]);
+			//	//<flexible>
+			//	LLXMLNodePtr flex_xml = prim_xml->createChild("flexible", FALSE);
+			//	//<softness val="2.0">
+			//	LLXMLNodePtr softness_xml = flex_xml->createChild("softness", FALSE);
+			//	softness_xml->createChild("val", TRUE)->setValue(llformat("%.5f", (F32)attributes.getSimulateLOD()));
+			//	//<gravity val="0.3">
+			//	LLXMLNodePtr gravity_xml = flex_xml->createChild("gravity", FALSE);
+			//	gravity_xml->createChild("val", TRUE)->setValue(llformat("%.5f", attributes.getGravity()));
+			//	//<drag val="2.0">
+			//	LLXMLNodePtr drag_xml = flex_xml->createChild("drag", FALSE);
+			//	drag_xml->createChild("val", TRUE)->setValue(llformat("%.5f", attributes.getAirFriction()));
+			//	//<wind val="0.0">
+			//	LLXMLNodePtr wind_xml = flex_xml->createChild("wind", FALSE);
+			//	wind_xml->createChild("val", TRUE)->setValue(llformat("%.5f", attributes.getWindSensitivity()));
+			//	//<tension val="1.0">
+			//	LLXMLNodePtr tension_xml = flex_xml->createChild("tension", FALSE);
+			//	tension_xml->createChild("val", TRUE)->setValue(llformat("%.5f", attributes.getTension()));
+			//	//<force x="0.0" y="0.0" z="0.0" />
+			//	LLXMLNodePtr force_xml = flex_xml->createChild("force", FALSE);
+			//	force_xml->createChild("x", TRUE)->setValue(llformat("%.5f", attributes.getUserForce().mV[VX]));
+			//	force_xml->createChild("y", TRUE)->setValue(llformat("%.5f", attributes.getUserForce().mV[VY]));
+			//	force_xml->createChild("z", TRUE)->setValue(llformat("%.5f", attributes.getUserForce().mV[VZ]));
+			//}
 
-			// Light
-			if (prim.has("light"))
-			{
-				LLLightParams light;
-				light.fromLLSD(prim["light"]);
-				//<light>
-				LLXMLNodePtr light_xml = prim_xml->createChild("light", FALSE);
-				//<color r="255" g="255" b="255" />
-				LLXMLNodePtr color_xml = light_xml->createChild("color", FALSE);
-				LLColor4 color = light.getColor();
-				color_xml->createChild("r", TRUE)->setValue(llformat("%u", (U32)(color.mV[VRED] * 255)));
-				color_xml->createChild("g", TRUE)->setValue(llformat("%u", (U32)(color.mV[VGREEN] * 255)));
-				color_xml->createChild("b", TRUE)->setValue(llformat("%u", (U32)(color.mV[VBLUE] * 255)));
-				//<intensity val="1.0" />
-				LLXMLNodePtr intensity_xml = light_xml->createChild("intensity", FALSE);
-				intensity_xml->createChild("val", TRUE)->setValue(llformat("%.5f", color.mV[VALPHA]));
-				//<radius val="10.0" />
-				LLXMLNodePtr radius_xml = light_xml->createChild("radius", FALSE);
-				radius_xml->createChild("val", TRUE)->setValue(llformat("%.5f", light.getRadius()));
-				//<falloff val="0.75" />
-				LLXMLNodePtr falloff_xml = light_xml->createChild("falloff", FALSE);
-				falloff_xml->createChild("val", TRUE)->setValue(llformat("%.5f", light.getFalloff()));
-			}
+			//// Light
+			//if (prim.has("light"))
+			//{
+			//	LLLightParams light;
+			//	light.fromLLSD(prim["light"]);
+			//	//<light>
+			//	LLXMLNodePtr light_xml = prim_xml->createChild("light", FALSE);
+			//	//<color r="255" g="255" b="255" />
+			//	LLXMLNodePtr color_xml = light_xml->createChild("color", FALSE);
+			//	LLColor4 color = light.getColor();
+			//	color_xml->createChild("r", TRUE)->setValue(llformat("%u", (U32)(color.mV[VRED] * 255)));
+			//	color_xml->createChild("g", TRUE)->setValue(llformat("%u", (U32)(color.mV[VGREEN] * 255)));
+			//	color_xml->createChild("b", TRUE)->setValue(llformat("%u", (U32)(color.mV[VBLUE] * 255)));
+			//	//<intensity val="1.0" />
+			//	LLXMLNodePtr intensity_xml = light_xml->createChild("intensity", FALSE);
+			//	intensity_xml->createChild("val", TRUE)->setValue(llformat("%.5f", color.mV[VALPHA]));
+			//	//<radius val="10.0" />
+			//	LLXMLNodePtr radius_xml = light_xml->createChild("radius", FALSE);
+			//	radius_xml->createChild("val", TRUE)->setValue(llformat("%.5f", light.getRadius()));
+			//	//<falloff val="0.75" />
+			//	LLXMLNodePtr falloff_xml = light_xml->createChild("falloff", FALSE);
+			//	falloff_xml->createChild("val", TRUE)->setValue(llformat("%.5f", light.getFalloff()));
+			//}
 			// Sculpt
 			if (prim.has("sculpt"))
 			{
@@ -754,7 +779,7 @@ void hpa_converter::save_oar_objects()
 			}
 
 			//TextureEntry
-			shape_xml->createChild("TextureEntry", FALSE)->setValue(llsd_to_textureentry(prim["textures"]));
+			//shape_xml->createChild("TextureEntry", FALSE)->setValue(llsd_to_textureentry(prim["textures"]));
 
 			//<inventory>
 			prim_xml->createChild("FolderID", FALSE)->createChild("Guid", FALSE)->setValue(object_uuid.asString());
