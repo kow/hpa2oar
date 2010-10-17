@@ -410,6 +410,14 @@ void hpa_converter::save_oar_objects()
 			//<ProfileCurve>1</ProfileCurve>
 			shape_xml->createChild("ProfileCurve", FALSE)->setIntValue(profile);
 
+			if (path == LL_PCODE_PATH_LINE)
+			{
+				if (prim.has("flexible"))
+				{
+					path = LL_PCODE_PATH_FLEXIBLE;
+				}
+			}
+
 			//<PathCurve>16</PathCurve>
 			shape_xml->createChild("PathCurve", FALSE)->setIntValue(path);
 
@@ -419,7 +427,7 @@ void hpa_converter::save_oar_objects()
 			//<PathScaleY>75</PathScaleY>
 			F32 taper_y = (1.f - volume_params.getRatioY()) * 100.f + 100.f;
 			shape_xml->createChild("PathScaleY", FALSE)->setFloatValue(taper_y);
-		
+
 			const char	*selected_hole	= "1";
 			switch (hole)
 			{
