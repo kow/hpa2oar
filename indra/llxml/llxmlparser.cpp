@@ -112,10 +112,9 @@ exit_label:
 		fclose( file );
 	}
 
-
 	if( success )
 	{
-		llassert( !mDepth );
+		//llassert( !mDepth );
 	}
 	mDepth = 0;
 

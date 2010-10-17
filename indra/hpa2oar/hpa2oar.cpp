@@ -387,13 +387,13 @@ void hpa_converter::save_oar_objects()
 			else if (pcode == LL_PCODE_LEGACY_GRASS)
 			{
 				prim_xml = new LLXMLNode("grass", FALSE);
-				LLXMLNodePtr shadow_xml = prim_xml->createChild("type", FALSE);
+				LLXMLNode* shadow_xml = prim_xml->createChild("type", FALSE);
 				shadow_xml->createChild("val", TRUE)->setValue(prim["state"]);
 			}
 			else if (pcode == LL_PCODE_LEGACY_TREE)
 			{
 				prim_xml = new LLXMLNode("tree", FALSE);
-				LLXMLNodePtr shadow_xml = prim_xml->createChild("type", FALSE);
+				LLXMLNode* shadow_xml = prim_xml->createChild("type", FALSE);
 				shadow_xml->createChild("val", TRUE)->setValue(prim["state"]);
 			} */
 
@@ -404,7 +404,7 @@ void hpa_converter::save_oar_objects()
 			prim_xml->createChild("xmlns:xsd", TRUE)->setValue("http://www.w3.org/2001/XMLSchema");
 
 			//<Shape>
-			LLXMLNodePtr shape_xml = prim_xml->createChild("Shape", FALSE);
+			LLXMLNode* shape_xml = prim_xml->createChild("Shape", FALSE);
 			shape_xml->createChild("PCode", FALSE)->setIntValue(pcode);
 
 			//<ProfileCurve>1</ProfileCurve>
@@ -535,7 +535,7 @@ void hpa_converter::save_oar_objects()
 			//Transforms//
 			//////////////
 
-			LLXMLNodePtr group_position_xml = prim_xml->createChild("GroupPosition", FALSE);
+			LLXMLNode* group_position_xml = prim_xml->createChild("GroupPosition", FALSE);
 
 			if(is_root_prim)
 			{
@@ -545,7 +545,7 @@ void hpa_converter::save_oar_objects()
 			}
 
 			//This is probably wrong! This may be absolute rotations where it's wanting relative from the root's rot!
-			LLXMLNodePtr rotation_xml = prim_xml->createChild("RotationOffset", FALSE);
+			LLXMLNode* rotation_xml = prim_xml->createChild("RotationOffset", FALSE);
 			LLQuaternion rotation = ll_quaternion_from_sd(prim["rotation"]);
 
 			if(is_root_prim)
@@ -558,20 +558,20 @@ void hpa_converter::save_oar_objects()
 			group_position_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", root_position.mdV[VY]));
 			group_position_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", root_position.mdV[VZ]));
 
-			LLXMLNodePtr offset_position_xml = prim_xml->createChild("OffsetPosition", FALSE);
+			LLXMLNode* offset_position_xml = prim_xml->createChild("OffsetPosition", FALSE);
 			LLVector3d position = (ll_vector3d_from_sd(prim["position"]) - root_position) * ~root_rotation;
 			offset_position_xml->createChild("X", FALSE)->setValue(llformat("%.5f", position.mdV[VX]));
 			offset_position_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", position.mdV[VY]));
 			offset_position_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", position.mdV[VZ]));
 
-			LLXMLNodePtr scale_xml = prim_xml->createChild("Scale", FALSE);
+			LLXMLNode* scale_xml = prim_xml->createChild("Scale", FALSE);
 			LLVector3d scale = ll_vector3d_from_sd(prim["scale"]);
 			scale_xml->createChild("X", FALSE)->setValue(llformat("%.5f", scale.mdV[VX]));
 			scale_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", scale.mdV[VY]));
 			scale_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", scale.mdV[VZ]));
 
 			//apparently shape wants a copy of this too, whatever.
-			LLXMLNodePtr shape_scale_xml = shape_xml->createChild("Scale", FALSE);
+			LLXMLNode* shape_scale_xml = shape_xml->createChild("Scale", FALSE);
 			shape_scale_xml->createChild("X", FALSE)->setValue(llformat("%.5f", scale.mdV[VX]));
 			shape_scale_xml->createChild("Y", FALSE)->setValue(llformat("%.5f", scale.mdV[VY]));
 			shape_scale_xml->createChild("Z", FALSE)->setValue(llformat("%.5f", scale.mdV[VZ]));
@@ -606,7 +606,7 @@ void hpa_converter::save_oar_objects()
 			// Flags
 
 			//I really hate libomv
-			LLXMLNodePtr object_flags_xml = prim_xml->createChild("ObjectFlags", FALSE);
+			LLXMLNode* object_flags_xml = prim_xml->createChild("ObjectFlags", FALSE);
 
 			U32 object_flags = 0;
 
@@ -646,7 +646,7 @@ void hpa_converter::save_oar_objects()
 				//<top_shear x="0" y="0" />
 				F32 shear_x = volume_params.getShearX();
 				F32 shear_y = volume_params.getShearY();
-				LLXMLNodePtr shear_xml = prim_xml->createChild("top_shear", FALSE);
+				LLXMLNode* shear_xml = prim_xml->createChild("top_shear", FALSE);
 				shear_xml->createChild("x", TRUE)->setValue(llformat("%.5f", shear_x));
 				shear_xml->createChild("y", TRUE)->setValue(llformat("%.5f", shear_y));
 			}
@@ -654,7 +654,7 @@ void hpa_converter::save_oar_objects()
 			{
 				// Dimple
 				//<dimple begin="0.0" end="1.0" />
-				LLXMLNodePtr shear_xml = prim_xml->createChild("dimple", FALSE);
+				LLXMLNode* shear_xml = prim_xml->createChild("dimple", FALSE);
 				shear_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", adv_cut_begin));
 				shear_xml->createChild("end", TRUE)->setValue(llformat("%.5f", adv_cut_end));
 			}
@@ -665,7 +665,7 @@ void hpa_converter::save_oar_objects()
 				//<taper x="0" y="0" />
 				F32 taper_x = 1.f - volume_params.getRatioX();
 				F32 taper_y = 1.f - volume_params.getRatioY();
-				LLXMLNodePtr taper_xml = prim_xml->createChild("taper", FALSE);
+				LLXMLNode* taper_xml = prim_xml->createChild("taper", FALSE);
 				taper_xml->createChild("x", TRUE)->setValue(llformat("%.5f", taper_x));
 				taper_xml->createChild("y", TRUE)->setValue(llformat("%.5f", taper_y));
 			}
@@ -675,38 +675,38 @@ void hpa_converter::save_oar_objects()
 				//<taper x="0" y="0" />
 				F32 taper_x	= volume_params.getTaperX();
 				F32 taper_y = volume_params.getTaperY();
-				LLXMLNodePtr taper_xml = prim_xml->createChild("taper", FALSE);
+				LLXMLNode* taper_xml = prim_xml->createChild("taper", FALSE);
 				taper_xml->createChild("x", TRUE)->setValue(llformat("%.5f", taper_x));
 				taper_xml->createChild("y", TRUE)->setValue(llformat("%.5f", taper_y));
 				//Hole Size
 				//<hole_size x="0.2" y="0.35" />
 				F32 hole_size_x = volume_params.getRatioX();
 				F32 hole_size_y = volume_params.getRatioY();
-				LLXMLNodePtr hole_size_xml = prim_xml->createChild("hole_size", FALSE);
+				LLXMLNode* hole_size_xml = prim_xml->createChild("hole_size", FALSE);
 				hole_size_xml->createChild("x", TRUE)->setValue(llformat("%.5f", hole_size_x));
 				hole_size_xml->createChild("y", TRUE)->setValue(llformat("%.5f", hole_size_y));
 				//Advanced cut
 				//<profile_cut begin="0" end="1" />
-				LLXMLNodePtr profile_cut_xml = prim_xml->createChild("profile_cut", FALSE);
+				LLXMLNode* profile_cut_xml = prim_xml->createChild("profile_cut", FALSE);
 				profile_cut_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", adv_cut_begin));
 				profile_cut_xml->createChild("end", TRUE)->setValue(llformat("%.5f", adv_cut_end));
 				//Skew
 				//<skew val="0.0" />
 				F32 skew = volume_params.getSkew();
-				LLXMLNodePtr skew_xml = prim_xml->createChild("skew", FALSE);
+				LLXMLNode* skew_xml = prim_xml->createChild("skew", FALSE);
 				skew_xml->createChild("val", TRUE)->setValue(llformat("%.5f", skew));
 				//Radius offset
 				//<radius_offset val="0.0" />
 				F32 radius_offset = volume_params.getRadiusOffset();
-				LLXMLNodePtr radius_offset_xml = prim_xml->createChild("radius_offset", FALSE);
+				LLXMLNode* radius_offset_xml = prim_xml->createChild("radius_offset", FALSE);
 				radius_offset_xml->createChild("val", TRUE)->setValue(llformat("%.5f", radius_offset));
 			}
 			////<path_cut begin="0" end="1" />
-			//LLXMLNodePtr path_cut_xml = prim_xml->createChild("path_cut", FALSE);
+			//LLXMLNode* path_cut_xml = prim_xml->createChild("path_cut", FALSE);
 			//path_cut_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", cut_begin));
 			//path_cut_xml->createChild("end", TRUE)->setValue(llformat("%.5f", cut_end));
 			////<twist begin="0" end="0" />
-			//LLXMLNodePtr twist_xml = prim_xml->createChild("twist", FALSE);
+			//LLXMLNode* twist_xml = prim_xml->createChild("twist", FALSE);
 			//twist_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", twist_begin));
 			//twist_xml->createChild("end", TRUE)->setValue(llformat("%.5f", twist));
 
@@ -718,13 +718,45 @@ void hpa_converter::save_oar_objects()
 			if(prim.has("flexible") || prim.has("light"))
 				packed_params = pack_extra_params(prim);
 
-			LLXMLNodePtr extra_params_xml = prim_xml->createChild("ExtraParams", FALSE);
+			LLXMLNode* extra_params_xml = shape_xml->createChild("ExtraParams", FALSE);
 
 			if(!packed_params.empty())
 			{
-				printinfo(packed_params);
+				//printinfo(packed_params);
 				extra_params_xml->setValue(packed_params);
 			}
+
+			if(prim.has("flexible"))
+			{
+				LLFlexibleObjectData flex_data;
+				flex_data.fromLLSD(prim["flexible"]);
+
+				shape_xml->createChild("FlexiEntry", FALSE)->setValue("true");
+				shape_xml->createChild("FlexiSoftness", FALSE)->setValue(llformat("%d", flex_data.getSimulateLOD()));
+				shape_xml->createChild("FlexiTension", FALSE)->setValue(llformat("%f", flex_data.getTension()));
+				shape_xml->createChild("FlexiDrag", FALSE)->setValue(llformat("%f", flex_data.getAirFriction()));
+				shape_xml->createChild("FlexiGravity", FALSE)->setValue(llformat("%f", flex_data.getGravity()));
+				shape_xml->createChild("FlexiWind", FALSE)->setValue(llformat("%f", flex_data.getWindSensitivity()));
+				shape_xml->createChild("FlexiForceX", FALSE)->setValue(llformat("%f", flex_data.getUserForce()[VX]));
+				shape_xml->createChild("FlexiForceY", FALSE)->setValue(llformat("%f", flex_data.getUserForce()[VY]));
+				shape_xml->createChild("FlexiForceZ", FALSE)->setValue(llformat("%f", flex_data.getUserForce()[VZ]));
+			}
+
+			if(prim.has("light"))
+			{
+				LLSD light_data = prim["light"];
+				shape_xml->createChild("LightEntry", FALSE)->setValue("true");
+				shape_xml->createChild("LightColorR", FALSE)->setValue(light_data["color"][0].asString());
+				shape_xml->createChild("LightColorG", FALSE)->setValue(light_data["color"][1].asString());
+				shape_xml->createChild("LightColorB", FALSE)->setValue(light_data["color"][2].asString());
+				shape_xml->createChild("LightColorA", FALSE)->setValue("1");
+				shape_xml->createChild("LightIntensity", FALSE)->setValue(light_data["color"][3].asString());
+				shape_xml->createChild("LightCutoff", FALSE)->setValue(light_data["cutoff"].asString());
+				shape_xml->createChild("LightFalloff", FALSE)->setValue(light_data["falloff"].asString());
+				shape_xml->createChild("LightRadius", FALSE)->setValue(light_data["radius"].asString());
+			}
+
+
 
 			// Sculpt
 			if (prim.has("sculpt"))
@@ -733,7 +765,7 @@ void hpa_converter::save_oar_objects()
 				sculpt.fromLLSD(prim["sculpt"]);
 
 				//<topology val="4" />
-				LLXMLNodePtr topology_xml = prim_xml->createChild("topology", FALSE);
+				LLXMLNode* topology_xml = prim_xml->createChild("topology", FALSE);
 				topology_xml->createChild("val", TRUE)->setValue(llformat("%u", sculpt.getSculptType()));
 
 				//<sculptmap_uuid>1e366544-c287-4fff-ba3e-5fafdba10272</sculptmap_uuid>
@@ -749,7 +781,7 @@ void hpa_converter::save_oar_objects()
 
 			//<inventory>
 			prim_xml->createChild("FolderID", FALSE)->createChild("Guid", FALSE)->setValue(object_uuid.asString());
-			LLXMLNodePtr inventory_xml = new LLXMLNode("TaskInventory", FALSE);
+			LLXMLNode* inventory_xml = new LLXMLNode("TaskInventory", FALSE);
 
 			U32 num_of_items = 0;
 
@@ -767,7 +799,7 @@ void hpa_converter::save_oar_objects()
 					++num_of_items;
 
 					//<TaskInventoryItem>
-					LLXMLNodePtr field_xml = inventory_xml->createChild("TaskInventoryItem", FALSE);
+					LLXMLNode* field_xml = inventory_xml->createChild("TaskInventoryItem", FALSE);
 					   //<Description>2008-01-29 05:01:19 note card</Description>
 					field_xml->createChild("Description", FALSE)->setValue(item["desc"].asString());
 					if(item.has("asset_id"))
@@ -843,7 +875,7 @@ void hpa_converter::save_oar_objects()
 	archive_info_xml->createChild("major_version", TRUE)->setValue("0");
 	archive_info_xml->createChild("minor_version", TRUE)->setValue("1");
 
-	LLXMLNodePtr creation_info_xml = archive_info_xml->createChild("creation_info", FALSE);
+	LLXMLNode* creation_info_xml = archive_info_xml->createChild("creation_info", FALSE);
 
 	//doesn't particularly matter when it was exported
 	creation_info_xml->createChild("datetime", FALSE)->setValue("1");
@@ -1722,11 +1754,18 @@ std::string hpa_converter::pack_extra_params(LLSD extra_params)
 	//Since we need the length, we use a separate packer for the param data
 	//so we can get the length, and then tack it on after
 
+	if(extra_params.has("flexible") && extra_params.has("light"))
+		param_packer.packU8(0x02, "numofparams");
+	else
+		param_packer.packU8(0x01, "numofparams");
+
+
+	//flex isn't working... seems to be something wrong with the first bit of userforce when packed.
 	if(extra_params.has("flexible"))
 	{
 		U8* packed_flex_data = new U8[MAX_BUFFER_SIZE];
 		LLDataPackerBinaryBuffer flex_param_packer(packed_flex_data, MAX_BUFFER_SIZE);
-		LLLightParams flex_params;
+		LLFlexibleObjectData flex_params;
 
 		flex_params.fromLLSD(extra_params["flexible"]);
 
