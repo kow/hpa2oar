@@ -117,7 +117,7 @@ void hpa_converter::run()
 
 	printinfo("Copying assets");
 	//skip this for now
-	//copy_all_assets();
+	copy_all_assets();
 	load_hpa(path);
 	printinfo(llformat("Loaded %u linksets.",mOARFileContents.size()));
 
@@ -772,16 +772,10 @@ void hpa_converter::save_oar_objects()
 				LLSculptParams sculpt;
 				sculpt.fromLLSD(prim["sculpt"]);
 
-				//<topology val="4" />
-				LLXMLNode* topology_xml = prim_xml->createChild("topology", FALSE);
-				topology_xml->createChild("val", TRUE)->setValue(llformat("%u", sculpt.getSculptType()));
-
-				//<sculptmap_uuid>1e366544-c287-4fff-ba3e-5fafdba10272</sculptmap_uuid>
-				//<sculptmap_file>apple_map.tga</sculptmap_file>
-				//FIXME png/tga/j2c selection itt.
-				std::string sculpttexture;
-				sculpt.getSculptTexture().toString(sculpttexture);
-				prim_xml->createChild("sculptmap_uuid", FALSE)->setValue(sculpttexture);
+				shape_xml->createChild("SculptTexture", FALSE)->createChild("Guid", FALSE)->setValue(sculpt.getSculptTexture().asString());
+				shape_xml->createChild("SculptType", FALSE)->setValue(llformat("%u", sculpt.getSculptType()));
+				shape_xml->createChild("SculptData", FALSE);
+				shape_xml->createChild("SculptEntry", FALSE)->setValue("true");
 			}
 
 			//TextureEntry
@@ -789,11 +783,11 @@ void hpa_converter::save_oar_objects()
 
 			//<inventory>
 			prim_xml->createChild("FolderID", FALSE)->createChild("Guid", FALSE)->setValue(object_uuid.asString());
-			LLXMLNode* inventory_xml = new LLXMLNode("TaskInventory", FALSE);
+			LLXMLNode* inventory_xml = prim_xml->createChild("TaskInventory", FALSE);
 
 			U32 num_of_items = 0;
 
-			if(prim.has("inventory"))
+			if(prim.has("inventory") && false)
 			{
 				LLSD inventory = prim["inventory"];
 				//for each inventory item
@@ -841,9 +835,7 @@ void hpa_converter::save_oar_objects()
 			}
 
 			//I don't even know if this is right, as far as I can tell InventorySerial isn't even used for anything
-			//prim_xml->createChild("InventorySerial", FALSE)->setValue(llformat("%d", num_of_items));
-
-			//prim_xml->addChild(inventory_xml);
+			prim_xml->createChild("InventorySerial", FALSE)->setValue(llformat("%d", num_of_items));
 
 			//check if this is the first prim in the linkset
 			if(is_root_prim)
