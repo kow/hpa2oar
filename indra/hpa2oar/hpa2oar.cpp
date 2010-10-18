@@ -790,7 +790,7 @@ void hpa_converter::save_oar_objects()
 
 			U32 num_of_items = 0;
 
-			if(prim.has("inventory") && false)
+			if(prim.has("inventory"))
 			{
 				LLSD inventory = prim["inventory"];
 				//for each inventory item
