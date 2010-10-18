@@ -1437,6 +1437,13 @@ LLSD hpa_converter::parse_hpa_object(LLXmlTreeNode* prim)
 							param->getAttributeU8("val", shiny);
 							thisface.setShiny(shiny);
 						}
+						//someone forgot bumpmap!
+						else if (param->hasName("bump"))
+						{
+							U8 bump;
+							param->getAttributeU8("val", bump);
+							thisface.setBumpmap(bump);
+						}
 					}
 
 					if (imageuuid.notNull())
@@ -1650,8 +1657,6 @@ LLSD hpa_converter::parse_hpa_object(LLXmlTreeNode* prim)
 
 std::string hpa_converter::llsd_to_textureentry(LLSD te_faces)
 {
-#if 0
-	//WIP C++ TE packer
 	LLPrimitive te_dummy;
 
 	U8* packed_data = new U8[MAX_BUFFER_SIZE];
@@ -1664,11 +1669,13 @@ std::string hpa_converter::llsd_to_textureentry(LLSD te_faces)
 	{
 		LLTextureEntry curr_te;
 		curr_te.fromLLSD(te_faces[i]);
+
 		te_dummy.setTE(i, curr_te);
 	}
 
 	te_dummy.packTEMessage(te_packer);
 
+	//there seems to be 4 leading bytes that aren't used at all, what the heck?
 	std::string encoded_te = LLBase64::encode(packed_data + 4, te_packer.getCurrentSize() - 4);
 
 	delete packed_data;
@@ -1676,105 +1683,6 @@ std::string hpa_converter::llsd_to_textureentry(LLSD te_faces)
 	printinfo(encoded_te);
 
 	return encoded_te;
-#else
-	/*
-	< stupid workaround for TEs >
-	 ---------------------------
-			\   ^__^
-			 \  (oo)\_______
-				(__)\       )\/\
-					||----w |
-					||     ||
-
-
-	Imagine this: This is packed to LLSD/XML, from LLSD.
-	Then it is unpacked into OSD. Then it is repacked into a bitfield.
-	That bitfield is then packed into a binary blob, and then the binary blob
-	is packed into a base64-encoded string. Nice. I don't even know if it's right
-	*/
-
-
-	LLSD osd_tes; //textureentities to be parsed by the OSD parser
-	LLSD default_face; //the default face (which isn't even really used)
-
-	for(int color_num = 0; color_num<4; ++color_num)
-		default_face["colors"][color_num] = 1.;
-
-	default_face["scales"] = 1.;
-	default_face["scalet"] = 1.;
-	default_face["offsets"] = 0.;
-	default_face["offsett"] = 0.;
-	default_face["imagerot"] = 0.;
-	default_face["bump"] = 0;
-	default_face["shiny"] = 0;
-	default_face["fullbright"] = false;
-	default_face["media_flags"] = 0;
-	default_face["mapping"] = 0;
-	default_face["glow"] = 0.;
-	default_face["imageid"] = LLUUID("89556747-24cb-43ed-920b-47caed15465f"); //plywood
-
-	osd_tes.append(default_face);
-
-	for (int i = 0; i < te_faces.size(); i++)
-	{
-		te_faces[i]["face_number"] = i; //I hope these are in order!
-		te_faces[i]["mapping"] = 0; //hmm, looks like the mapping type isn't in the HPA file format
-		te_faces[i]["fullbright"] = te_faces[i]["fullbright"].asBoolean();
-
-		osd_tes.append(te_faces[i]);
-	}
-
-	std::string encoded_te = "";
-
-	std::string temp_te_path = "temp_te.xml";
-	llofstream out(temp_te_path,std::ios_base::out | std::ios_base::trunc);
-
-	if (!out.good())
-	{
-		llwarns << "\nUnable to open \"" + temp_te_path + "\" for output." << llendl;
-	}
-	else
-	{
-		LLSDSerialize::toXML(osd_tes, out);
-		out.close();
-
-		std::string exe_path = gDirUtilp->getExecutableDir();
-		exe_path += gDirUtilp->getDirDelimiter();
-		exe_path += "TEUnscrewer.exe";
-
-		if(!gDirUtilp->fileExists(exe_path)) llerrs << "Then who was TEUnscrewer.exe?" << llendl;
-
-//DUMB DUMB DUMB
-#if !LL_WINDOWS
-		system("mono TEUnscrewer.exe");
-#else
-		system(exe_path.c_str());
-#endif
-
-		//the TE unscrewer will have written a file for us, hoorah
-
-		std::string encoded_te_path = "encoded_te.txt";
-		llifstream in(encoded_te_path,std::ios_base::in);
-
-		if (!in.is_open())
-		{
-			llwarns << "\nUnable to open \"" + encoded_te_path + "\" for input." << llendl;
-		}
-		else
-		{
-			std::getline(in, encoded_te);
-
-			LLFile::remove(encoded_te_path);
-		}
-
-		LLFile::remove(temp_te_path);
-	}
-
-	printinfo(encoded_te);
-
-	return encoded_te;
-
-#endif
 }
 
 std::string hpa_converter::pack_extra_params(LLSD extra_params)
