@@ -84,10 +84,6 @@ int main(int argv,char * argc[])
 		//	llerrs << "Output path exists!" << llendl;
 
 		converter.run();
-
-		char dummy;
-		printf("Press enter to continue\n");
-		scanf("%c",&dummy);
 	}
 
 	ll_cleanup_apr();
@@ -120,11 +116,6 @@ void hpa_converter::run()
 	copy_all_assets();
 	load_hpa(path);
 	printinfo(llformat("Loaded %u linksets.",mOARFileContents.size()));
-
-	//DEBUG CODE
-	llofstream export_file(path + ".llsd",std::ios_base::app | std::ios_base::out);
-	LLSDSerialize::toPrettyXML(mOARFileContents, export_file);
-	export_file.close();
 
 	printinfo("Saving linksets in OAR format (go grab a coffee)");
 	save_oar_objects();
@@ -611,9 +602,21 @@ void hpa_converter::save_oar_objects()
 			F32 revolutions = (volume_params.getRevolutions() - 1) / 0.015f;
 			shape_xml->createChild("PathRevolutions", FALSE)->setValue(llformat("%u", (U32)revolutions));
 
-			// Flags
+			//PathTaper
+			F32 path_taper_x = volume_params.getTaperX() * 100.f;
+			shape_xml->createChild("PathTaperX", FALSE)->setValue(llformat("%.0f", path_taper_x));
+			F32 path_taper_y = volume_params.getTaperY() * 100.f;
+			shape_xml->createChild("PathTaperY", FALSE)->setValue(llformat("%.0f", path_taper_y));
+			
+			//Skew
+			F32 skew = volume_params.getSkew() * 100.f;
+			shape_xml->createChild("PathSkew", FALSE)->setValue(llformat("%.0f", skew));
 
-			//I really hate libomv
+			//Radius offset
+			F32 radius_offset = volume_params.getRadiusOffset() * 100.f;
+			shape_xml->createChild("PathRadiusOffset", FALSE)->setValue(llformat("%.0f", radius_offset));
+
+			// Flags
 			LLXMLNode* object_flags_xml = prim_xml->createChild("ObjectFlags", FALSE);
 
 			U32 object_flags = 0;
@@ -667,48 +670,48 @@ void hpa_converter::save_oar_objects()
 				shear_xml->createChild("end", TRUE)->setValue(llformat("%.5f", adv_cut_end));
 			}
 
-			if (selected_item == "box" || selected_item == "cylinder" || selected_item == "prism")
-			{
-				// Taper
-				//<taper x="0" y="0" />
-				F32 taper_x = 1.f - volume_params.getRatioX();
-				F32 taper_y = 1.f - volume_params.getRatioY();
-				LLXMLNode* taper_xml = prim_xml->createChild("taper", FALSE);
-				taper_xml->createChild("x", TRUE)->setValue(llformat("%.5f", taper_x));
-				taper_xml->createChild("y", TRUE)->setValue(llformat("%.5f", taper_y));
-			}
-			else if (selected_item == "torus" || selected_item == "tube" || selected_item == "ring")
-			{
-				// Taper
-				//<taper x="0" y="0" />
-				F32 taper_x	= volume_params.getTaperX();
-				F32 taper_y = volume_params.getTaperY();
-				LLXMLNode* taper_xml = prim_xml->createChild("taper", FALSE);
-				taper_xml->createChild("x", TRUE)->setValue(llformat("%.5f", taper_x));
-				taper_xml->createChild("y", TRUE)->setValue(llformat("%.5f", taper_y));
-				//Hole Size
-				//<hole_size x="0.2" y="0.35" />
-				F32 hole_size_x = volume_params.getRatioX();
-				F32 hole_size_y = volume_params.getRatioY();
-				LLXMLNode* hole_size_xml = prim_xml->createChild("hole_size", FALSE);
-				hole_size_xml->createChild("x", TRUE)->setValue(llformat("%.5f", hole_size_x));
-				hole_size_xml->createChild("y", TRUE)->setValue(llformat("%.5f", hole_size_y));
-				//Advanced cut
-				//<profile_cut begin="0" end="1" />
-				LLXMLNode* profile_cut_xml = prim_xml->createChild("profile_cut", FALSE);
-				profile_cut_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", adv_cut_begin));
-				profile_cut_xml->createChild("end", TRUE)->setValue(llformat("%.5f", adv_cut_end));
-				//Skew
-				//<skew val="0.0" />
-				F32 skew = volume_params.getSkew();
-				LLXMLNode* skew_xml = prim_xml->createChild("skew", FALSE);
-				skew_xml->createChild("val", TRUE)->setValue(llformat("%.5f", skew));
-				//Radius offset
-				//<radius_offset val="0.0" />
-				F32 radius_offset = volume_params.getRadiusOffset();
-				LLXMLNode* radius_offset_xml = prim_xml->createChild("radius_offset", FALSE);
-				radius_offset_xml->createChild("val", TRUE)->setValue(llformat("%.5f", radius_offset));
-			}
+			//if (selected_item == "box" || selected_item == "cylinder" || selected_item == "prism")
+			//{
+			//	// Taper
+			//	//<taper x="0" y="0" />
+			//	F32 taper_x = 1.f - volume_params.getRatioX();
+			//	F32 taper_y = 1.f - volume_params.getRatioY();
+			//	LLXMLNodePtr taper_xml = prim_xml->createChild("taper", FALSE);
+			//	taper_xml->createChild("x", TRUE)->setValue(llformat("%.5f", taper_x));
+			//	taper_xml->createChild("y", TRUE)->setValue(llformat("%.5f", taper_y));
+			//}
+			//else if (selected_item == "torus" || selected_item == "tube" || selected_item == "ring")
+			//{
+			//	// Taper
+			//	//<taper x="0" y="0" />
+			//	F32 taper_x	= volume_params.getTaperX();
+			//	F32 taper_y = volume_params.getTaperY();
+			//	LLXMLNodePtr taper_xml = prim_xml->createChild("taper", FALSE);
+			//	taper_xml->createChild("x", TRUE)->setValue(llformat("%.5f", taper_x));
+			//	taper_xml->createChild("y", TRUE)->setValue(llformat("%.5f", taper_y));
+			//	//Hole Size
+			//	//<hole_size x="0.2" y="0.35" />
+			//	F32 hole_size_x = volume_params.getRatioX();
+			//	F32 hole_size_y = volume_params.getRatioY();
+			//	LLXMLNodePtr hole_size_xml = prim_xml->createChild("hole_size", FALSE);
+			//	hole_size_xml->createChild("x", TRUE)->setValue(llformat("%.5f", hole_size_x));
+			//	hole_size_xml->createChild("y", TRUE)->setValue(llformat("%.5f", hole_size_y));
+			//	//Advanced cut
+			//	//<profile_cut begin="0" end="1" />
+			//	LLXMLNodePtr profile_cut_xml = prim_xml->createChild("profile_cut", FALSE);
+			//	profile_cut_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", adv_cut_begin));
+			//	profile_cut_xml->createChild("end", TRUE)->setValue(llformat("%.5f", adv_cut_end));
+			//	//Skew
+			//	//<skew val="0.0" />
+			//	F32 skew = volume_params.getSkew();
+			//	LLXMLNodePtr skew_xml = prim_xml->createChild("skew", FALSE);
+			//	skew_xml->createChild("val", TRUE)->setValue(llformat("%.5f", skew));
+			//	//Radius offset
+			//	//<radius_offset val="0.0" />
+			//	F32 radius_offset = volume_params.getRadiusOffset();
+			//	LLXMLNodePtr radius_offset_xml = prim_xml->createChild("radius_offset", FALSE);
+			//	radius_offset_xml->createChild("val", TRUE)->setValue(llformat("%.5f", radius_offset));
+			//}
 			////<path_cut begin="0" end="1" />
 			//LLXMLNode* path_cut_xml = prim_xml->createChild("path_cut", FALSE);
 			//path_cut_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", cut_begin));
