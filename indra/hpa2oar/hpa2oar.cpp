@@ -779,7 +779,7 @@ void hpa_converter::save_oar_objects()
 			}
 
 			//TextureEntry
-			//shape_xml->createChild("TextureEntry", FALSE)->setValue(llsd_to_textureentry(prim["textures"]));
+			shape_xml->createChild("TextureEntry", FALSE)->setValue(llsd_to_textureentry(prim["textures"]));
 
 			//<inventory>
 			prim_xml->createChild("FolderID", FALSE)->createChild("Guid", FALSE)->setValue(object_uuid.asString());
@@ -1647,6 +1647,33 @@ LLSD hpa_converter::parse_hpa_object(LLXmlTreeNode* prim)
 
 std::string hpa_converter::llsd_to_textureentry(LLSD te_faces)
 {
+#if 0
+	//WIP C++ TE packer
+	LLPrimitive te_dummy;
+
+	U8* packed_data = new U8[MAX_BUFFER_SIZE];
+	LLDataPackerBinaryBuffer te_packer(packed_data, MAX_BUFFER_SIZE);
+
+	U8 num_of_faces = (U8)te_faces.size();
+	te_dummy.setNumTEs(num_of_faces);
+
+	for(U8 i = 0; i < num_of_faces; ++i )
+	{
+		LLTextureEntry curr_te;
+		curr_te.fromLLSD(te_faces[i]);
+		te_dummy.setTE(i, curr_te);
+	}
+
+	te_dummy.packTEMessage(te_packer);
+
+	std::string encoded_te = LLBase64::encode(packed_data + 4, te_packer.getCurrentSize() - 4);
+
+	delete packed_data;
+
+	printinfo(encoded_te);
+
+	return encoded_te;
+#else
 	/*
 	< stupid workaround for TEs >
 	 ---------------------------
@@ -1740,7 +1767,11 @@ std::string hpa_converter::llsd_to_textureentry(LLSD te_faces)
 		LLFile::remove(temp_te_path);
 	}
 
+	printinfo(encoded_te);
+
 	return encoded_te;
+
+#endif
 }
 
 std::string hpa_converter::pack_extra_params(LLSD extra_params)
