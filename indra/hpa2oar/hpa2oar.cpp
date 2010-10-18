@@ -1680,8 +1680,6 @@ std::string hpa_converter::llsd_to_textureentry(LLSD te_faces)
 
 	delete packed_data;
 
-	printinfo(encoded_te);
-
 	return encoded_te;
 }
 
