@@ -51,7 +51,6 @@
 #include "hpa2oar.h"
 
 using namespace LLError;
-namespace po = boost::program_options;
 
 int main(int argv,char * argc[])
 {
@@ -60,35 +59,68 @@ int main(int argv,char * argc[])
 	LLError::initForApplication(".");
 	gDirUtilp->initAppDirs("hpa2oar",""); // path search is broken, if the pp_read_only_data_dir is not set to something searches fail
 
-	// ensure converter dies before ll_cleanup_apr() is called
-	{
-		hpa_converter converter;
+	std::string oarfile = "";
+	std::string hpafile = "";
 
-		converter.sep = gDirUtilp->getDirDelimiter();
-		if(argv>2)
-		{
-			converter.path=std::string(argc[1]);
-			converter.outputPath=std::string(argc[2]);
+	try {
+
+		boost::program_options::options_description desc("Allowed options");
+		desc.add_options()
+			("help", "produce help message")
+			("hpa", boost::program_options::value<std::string>(), "path to the source HPA file")
+			("oar", boost::program_options::value<std::string>(), "path to the destination directory")
+		;
+
+		boost::program_options::variables_map vm;
+		boost::program_options::store(boost::program_options::parse_command_line(argv, argc, desc), vm);
+		boost::program_options::notify(vm);
+
+		if (vm.count("help")) {
+			llinfos << desc << llendl;
+			return 0;
 		}
-		else if(argv == 2)
-		{
-			llerrs << "No output folder provided"<<llendl;
-		}
-		else
-		{
-			llerrs << "No HPA or output folder name provided"<<llendl;
+
+		if (vm.count("hpa")) {
+			hpafile = vm["hpa"].as<std::string>();
+		} else {
+			llerrs << "--hpa is a required parameter\n" << desc << llendl;
 		}
 
-		if(!gDirUtilp->fileExists(converter.path))
-			llerrs << "\"" << converter.path << "\" doesn't exist"<<llendl;
+		if (vm.count("oar")) {
+			oarfile = vm["oar"].as<std::string>();
+		} else {
+			llerrs << "--oar is a required parameter\n" << desc << llendl;
+		}
 
-		//if(gDirUtilp->fileExists(converter.outputPath))
-		//	llerrs << "Output path exists!" << llendl;
+		// ensure converter dies before ll_cleanup_apr() is called
+		{
+			hpa_converter converter;
 
-		converter.run();
+			converter.outputPath = oarfile;
+			converter.path = hpafile;
+
+			converter.sep = gDirUtilp->getDirDelimiter();
+
+			if(!gDirUtilp->fileExists(converter.path))
+				llerrs << "\"" << converter.path << "\" doesn't exist"<<llendl;
+
+			//if(gDirUtilp->fileExists(converter.outputPath))
+			//	llerrs << "Output path exists!" << llendl;
+
+			converter.run();
+		}
+
+	}
+	catch(std::exception& e) {
+		llerrs << "error: " << e.what() << llendl;
+	}
+	catch(...) {
+		llerrs << "Exception of unknown type!" << llendl;
 	}
 
 	ll_cleanup_apr();
+
+	return 0;
 }
 
 hpa_converter::hpa_converter()
