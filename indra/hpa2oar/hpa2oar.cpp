@@ -23,6 +23,8 @@
 #include "llpointer.h"
 #include "llerrorcontrol.h"
 
+#include <boost/program_options.hpp>
+
 #include "lldir.h"
 #include "llapr.h"
 #include <iostream>
@@ -49,6 +51,7 @@
 #include "hpa2oar.h"
 
 using namespace LLError;
+namespace po = boost::program_options;
 
 int main(int argv,char * argc[])
 {
@@ -1707,7 +1710,6 @@ std::string hpa_converter::pack_extra_params(LLSD extra_params)
 		LLFlexibleObjectData flex_params;
 
 		flex_params.fromLLSD(extra_params["flexible"]);
-/usr/share/doc/libboost-doc/examples/libs/program_options
 		flex_params.pack(flex_param_packer);
 		S32 flex_param_size = flex_param_packer.getCurrentSize();
 
