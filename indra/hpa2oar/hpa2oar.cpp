@@ -48,7 +48,18 @@
 #include "lldatapacker.h"
 #include "llbase64.h"
 
+#include <libarchive/archive.h>
+#include <sys/stat.h>
+
+#include <fcntl.h>
+
 #include "hpa2oar.h"
+
+#ifdef LL_WINDOWS
+#	define SEP "\\"
+#else
+#	define SEP "/"
+#endif
 
 using namespace LLError;
 
@@ -1850,4 +1861,79 @@ std::string LLAssetTools::HPAtoOARName(std::string src_filename)
 
 	llwarns << "For " << src_filename << ": This asset type isn't supported yet." << llendl;
 	return std::string("");
+}
+
+//this is actually pretty dumb, but it does what we want, and it's short
+void pack_directory_to_tgz(std::string path, std::string basedir, std::string outpath)
+{
+	struct archive *a;
+
+	a = archive_write_new();
+	archive_write_set_compression_gzip(a);
+	archive_write_set_format_pax_restricted(a);
+	archive_write_open_filename(a, outpath.c_str());
+
+	pack_directory(a, path, basedir);
+
+	archive_write_close(a);
+	archive_write_finish(a);
+}
+
+void pack_directory(struct archive* tgz, std::string path, std::string basedir)
+{
+	struct archive_entry *entry;
+	ssize_t len;
+	int fd;
+
+	char buff[1000000]; //should be able to handle files around 10mb in size.
+
+	std::string curr_file;
+
+	llinfos << basedir << SEP << path << llendl;
+
+	while (gDirUtilp->getNextFileInDir(basedir + SEP + path, "*", curr_file, FALSE))
+	{
+		//e.g. /home/dongsworth/hpafiles/asim/./awesomefile.txt
+		std::string full_path;
+
+		if(path.empty())
+			full_path = basedir + SEP + curr_file;
+		else
+			full_path = basedir + SEP + path + curr_file;
+
+		//Directory? RECURSE, RECURSE!
+		if(LLFile::isdir(full_path))
+		{
+			pack_directory(tgz, path + curr_file + SEP, basedir);
+		}
+		else
+		{
+			llinfos << full_path << llendl;
+			llinfos << path.c_str() << llendl;
+
+			entry = archive_entry_new();
+
+			//WE DON'T NEED NO STEENKEN ACLS!
+			llstat curr_file_stats;
+			LLFile::stat(full_path, &curr_file_stats);
+
+			archive_entry_set_pathname(entry, (path + curr_file).c_str());
+			archive_entry_set_size(entry, curr_file_stats.st_size);
+			archive_entry_set_filetype(entry, AE_IFREG);
+			archive_entry_set_perm(entry, 0644);
+
+			archive_write_header(tgz, entry);
+
+			fd = open(full_path.c_str(), O_RDONLY);
+			len = read(fd, buff, sizeof(buff));
+
+			while (len > 0)
+			{
+				archive_write_data(tgz, buff, len);
+				len = read(fd, buff, sizeof(buff));
+			}
+			close(fd);
+			archive_entry_free(entry);
+		}
+	}
 }

@@ -22,6 +22,8 @@
 #include "llthread.h"
 #include "llxmltree.h"
 #include "llassettype.h"
+#include <libarchive/archive.h>
+#include <libarchive/archive_entry.h>
 
 class hpa_converter : public LLThread
 {
@@ -86,5 +88,7 @@ enum {
 };
 
 void printinfo(std::string message);
+void pack_directory_to_tgz(std::string path, std::string basedir, std::string outpath);
+void pack_directory(struct archive* tgz, std::string path, std::string basedir);
 
 #endif

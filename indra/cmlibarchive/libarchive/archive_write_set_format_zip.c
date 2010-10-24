@@ -60,7 +60,7 @@ __FBSDID("$FreeBSD$");
 #include <string.h>
 #endif
 #ifdef HAVE_ZLIB_H
-#include <cm_zlib.h>
+#include <zlib.h>
 #endif
 
 #include "archive.h"

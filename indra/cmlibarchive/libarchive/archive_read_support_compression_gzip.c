@@ -41,7 +41,7 @@ __FBSDID("$FreeBSD: src/lib/libarchive/archive_read_support_compression_gzip.c,v
 #include <unistd.h>
 #endif
 #ifdef HAVE_ZLIB_H
-#include <cm_zlib.h>
+#include <zlib.h>
 #endif
 
 #include "archive.h"

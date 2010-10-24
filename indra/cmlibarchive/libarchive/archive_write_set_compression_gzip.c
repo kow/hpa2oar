@@ -38,7 +38,7 @@ __FBSDID("$FreeBSD: src/lib/libarchive/archive_write_set_compression_gzip.c,v 1.
 #endif
 #include <time.h>
 #ifdef HAVE_ZLIB_H
-#include <cm_zlib.h>
+#include <zlib.h>
 #endif
 
 #include "archive.h"

@@ -42,7 +42,7 @@ set_source_files_properties(${HPA2OAR_HEADER_FILES}
 list(APPEND HPA2OAR_SOURCE_FILES ${HPA2OAR_HEADER_FILES})
    
 add_executable(hpa2oar ${HPA2OAR_SOURCE_FILES})
-add_dependencies(hpa2oar llcommon libarchive llvfs llxml llmath llinventory llmessage llprimitive)
+add_dependencies(hpa2oar llcommon archive_static llvfs llxml llmath llinventory llmessage llprimitive)
 
 target_link_libraries(hpa2oar
 	${LLCOMMON_LIBRARIES}
@@ -57,6 +57,7 @@ target_link_libraries(hpa2oar
     ${BOOST_REGEX_LIBRARY}
 	${LIBAR_LIBRARY}
 	llmath #Wait, what? Why do I need to do this?
+	archive_static
     )
 
 add_custom_command(

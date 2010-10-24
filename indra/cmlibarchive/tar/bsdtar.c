@@ -64,7 +64,7 @@ __FBSDID("$FreeBSD: src/usr.bin/tar/bsdtar.c,v 1.93 2008/11/08 04:43:24 kientzle
 #include <unistd.h>
 #endif
 #if HAVE_ZLIB_H
-#include <cm_zlib.h>
+#include <zlib.h>
 #endif
 
 #include "bsdtar.h"
