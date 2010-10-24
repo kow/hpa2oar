@@ -1478,6 +1478,12 @@ LLSD hpa_converter::parse_hpa_object(LLXmlTreeNode* prim)
 							param->getAttributeU8("val", bump);
 							thisface.setBumpmap(bump);
 						}
+						else if (param->hasName("mapping"))
+						{
+							U8 mapping;
+							param->getAttributeU8("val", mapping);
+							thisface.setTexGen(mapping);
+						}
 					}
 
 					if (imageuuid.notNull())
