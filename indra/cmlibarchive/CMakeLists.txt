@@ -2,6 +2,7 @@
 #
 PROJECT(libarchive C)
 #
+
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6.1)
 SET(CMAKE_MODULE_PATH "${libarchive_SOURCE_DIR}/build/cmake")
 
@@ -69,6 +70,13 @@ INCLUDE(CheckStructMember)
 INCLUDE(CheckSymbolExists)
 INCLUDE(CheckTypeExists)
 INCLUDE(CheckTypeSize)
+
+#cast hack of laziness!
+SET(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
+include(00-Common)
+include(LLCommon)
+include(Linking)
 
 #
 # Generate list.h
@@ -144,19 +152,19 @@ SET(ADDITIONAL_LIBS "")
 #
 # Find ZLIB
 #
-#FIND_PACKAGE(ZLIB)
-#IF(ZLIB_FOUND)
-#  SET(HAVE_LIBZ 1)
-#  SET(HAVE_ZLIB_H 1)
-#  INCLUDE_DIRECTORIES(${ZLIB_INCLUDE_DIR})
-#  # if building inside cmake do not add this lib
-#  # as it will not exist at try compile time
-#  IF(NOT "${ZLIB_LIBRARIES}" MATCHES cmzlib)
-#    LIST(APPEND ADDITIONAL_LIBS ${ZLIB_LIBRARIES})
-#  ENDIF(NOT "${ZLIB_LIBRARIES}" MATCHES cmzlib)
-#ENDIF(ZLIB_FOUND)
-#MARK_AS_ADVANCED(CLEAR ZLIB_INCLUDE_DIR)
-#MARK_AS_ADVANCED(CLEAR ZLIB_LIBRARY)
+FIND_PACKAGE(ZLIB)
+IF(ZLIB_FOUND)
+  SET(HAVE_LIBZ 1)
+  SET(HAVE_ZLIB_H 1)
+  INCLUDE_DIRECTORIES(${ZLIB_INCLUDE_DIR})
+  # if building inside cmake do not add this lib
+  # as it will not exist at try compile time
+  IF(NOT "${ZLIB_LIBRARIES}" MATCHES cmzlib)
+    LIST(APPEND ADDITIONAL_LIBS ${ZLIB_LIBRARIES})
+  ENDIF(NOT "${ZLIB_LIBRARIES}" MATCHES cmzlib)
+ENDIF(ZLIB_FOUND)
+MARK_AS_ADVANCED(CLEAR ZLIB_INCLUDE_DIR)
+MARK_AS_ADVANCED(CLEAR ZLIB_LIBRARY)
 #
 # Find BZip2
 #
