@@ -12,6 +12,8 @@ include(LLVFS)
 include(LLInventory)
 include(Linking)
 
+include(LibArchive)
+
 include_directories(
     ${LLCOMMON_INCLUDE_DIRS}
     ${LLXML_INCLUDE_DIRS}
@@ -20,6 +22,7 @@ include_directories(
 	${LLMESSAGE_INCLUDE_DIRS}
 	${LLPRIMITIVE_INCLUDE_DIRS}
     ${LLVFS_INCLUDE_DIRS}
+	${LIBAR_INCLUDE_DIRS}
     )
 
 set(HPA2OAR_SOURCE_FILES
@@ -52,6 +55,7 @@ target_link_libraries(hpa2oar
     ${viewer_LIBRARIES}
     ${BOOST_PROGRAM_OPTIONS_LIBRARY}
     ${BOOST_REGEX_LIBRARY}
+	${LIBAR_LIBRARY}
 	llmath #Wait, what? Why do I need to do this?
     )
 
