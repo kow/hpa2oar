@@ -1864,7 +1864,7 @@ std::string LLAssetTools::HPAtoOARName(std::string src_filename)
 }
 
 //this is actually pretty dumb, but it does what we want, and it's short
-void pack_directory_to_tgz(std::string path, std::string basedir, std::string outpath)
+void pack_directory_to_tgz(std::string basedir, std::string outpath)
 {
 	struct archive *a;
 
@@ -1873,7 +1873,7 @@ void pack_directory_to_tgz(std::string path, std::string basedir, std::string ou
 	archive_write_set_format_pax_restricted(a);
 	archive_write_open_filename(a, outpath.c_str());
 
-	pack_directory(a, path, basedir);
+	pack_directory(a, "", basedir);
 
 	archive_write_close(a);
 	archive_write_finish(a);
@@ -1888,11 +1888,12 @@ void pack_directory(struct archive* tgz, std::string path, std::string basedir)
 	char buff[1000000]; //should be able to handle files around 10mb in size.
 
 	std::string curr_file;
-
-	llinfos << basedir << SEP << path << llendl;
+	int curr_index = 0;
 
 	while (gDirUtilp->getNextFileInDir(basedir + SEP + path, "*", curr_file, FALSE))
 	{
+		if(curr_file == "." || curr_file == "..") continue;
+
 		//e.g. /home/dongsworth/hpafiles/asim/./awesomefile.txt
 		std::string full_path;
 
@@ -1901,15 +1902,20 @@ void pack_directory(struct archive* tgz, std::string path, std::string basedir)
 		else
 			full_path = basedir + SEP + path + curr_file;
 
+		++curr_index;
+
 		//Directory? RECURSE, RECURSE!
 		if(LLFile::isdir(full_path))
 		{
 			pack_directory(tgz, path + curr_file + SEP, basedir);
+
+			//we recursed and gDirUtilp lost track of our search state, restore it
+			for(int i=0; i<curr_index;++i)
+				gDirUtilp->getNextFileInDir(basedir + SEP + path, "*", curr_file, FALSE);
 		}
 		else
 		{
 			llinfos << full_path << llendl;
-			llinfos << path.c_str() << llendl;
 
 			entry = archive_entry_new();
 

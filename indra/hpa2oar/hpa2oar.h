@@ -88,7 +88,7 @@ enum {
 };
 
 void printinfo(std::string message);
-void pack_directory_to_tgz(std::string path, std::string basedir, std::string outpath);
+void pack_directory_to_tgz(std::string basedir, std::string outpath);
 void pack_directory(struct archive* tgz, std::string path, std::string basedir);
 
 #endif
