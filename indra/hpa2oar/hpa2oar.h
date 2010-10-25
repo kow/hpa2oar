@@ -34,9 +34,10 @@ class hpa_converter : public LLThread
 	void write_to_folder(std::string oar_folder);
 
 	std::string path;
+	std::string tempPath;
 	std::string outputPath;
 
-	std::string sep;
+	std::string terrainPath;
 
 protected:
 	void load_hpa(std::string hpa_path);
@@ -57,12 +58,22 @@ protected:
 	U32 objects_processed;
 };
 
-class LLAssetTools
+class AssetTools
 {
 public:
 	static LLAssetType::EType typefromExt(std::string src_filename);
 	static std::string HPAtoOARName(std::string src_filename);
 };
+
+class FileTools
+{
+public:
+	static void pack_directory_to_tgz(std::string basedir, std::string outpath);
+	static void pack_directory(struct archive* tgz, std::string path, std::string basedir);
+	static void copy_file(std::string source, std::string dest);
+};
+
+void printinfo(std::string message);
 
 //enums from llpanelobject
 
@@ -86,9 +97,5 @@ enum {
 	MI_HOLE_TRIANGLE,
 	MI_HOLE_COUNT
 };
-
-void printinfo(std::string message);
-void pack_directory_to_tgz(std::string basedir, std::string outpath);
-void pack_directory(struct archive* tgz, std::string path, std::string basedir);
 
 #endif

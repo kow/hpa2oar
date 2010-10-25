@@ -49,8 +49,6 @@
 #include "llbase64.h"
 
 #include <libarchive/archive.h>
-#include <sys/stat.h>
-
 #include <fcntl.h>
 
 #include "hpa2oar.h"
@@ -80,6 +78,7 @@ int main(int argv,char * argc[])
 			("help", "produce help message")
 			("hpa", boost::program_options::value<std::string>(), "path to the source HPA file")
 			("oar", boost::program_options::value<std::string>(), "path to the destination directory")
+			("terrain", boost::program_options::value<std::string>(), "(optional) path to the terrain file")
 		;
 
 		boost::program_options::variables_map vm;
@@ -91,31 +90,39 @@ int main(int argv,char * argc[])
 			return 0;
 		}
 
-		if (vm.count("hpa")) {
+		if (vm.count("hpa"))
 			hpafile = vm["hpa"].as<std::string>();
-		} else {
+		else
 			llerrs << "--hpa is a required parameter\n" << desc << llendl;
-		}
 
-		if (vm.count("oar")) {
+		if (vm.count("oar"))
 			oarfile = vm["oar"].as<std::string>();
-		} else {
+		else
 			llerrs << "--oar is a required parameter\n" << desc << llendl;
-		}
 
 		// ensure converter dies before ll_cleanup_apr() is called
 		{
 			hpa_converter converter;
 
-			converter.outputPath = oarfile;
 			converter.path = hpafile;
+			converter.outputPath = oarfile;
 
-			converter.sep = gDirUtilp->getDirDelimiter();
+			if(vm.count("terrain"))
+				converter.terrainPath = vm["terrain"].as<std::string>();
+
+			LLUUID randomdir;
+			randomdir.generate();
+			converter.tempPath = gDirUtilp->getTempDir() + SEP + "hpa2oar" + SEP + randomdir.asString();
+
+			if(!gDirUtilp->fileExists(gDirUtilp->getTempDir() + SEP + "hpa2oar"))
+				LLFile::mkdir(gDirUtilp->getTempDir() + SEP + "hpa2oar", 0755);
+
+			LLFile::mkdir(converter.tempPath, 0755);
 
 			if(!gDirUtilp->fileExists(converter.path))
 				llerrs << "\"" << converter.path << "\" doesn't exist"<<llendl;
 
-			//if(gDirUtilp->fileExists(converter.outputPath))
+			//if(gDirUtilp->fileExists(converter.tempPath))
 			//	llerrs << "Output path exists!" << llendl;
 
 			converter.run();
@@ -157,13 +164,20 @@ void hpa_converter::run()
 	create_directory_structure();
 
 	printinfo("Copying assets");
-	//skip this for now
 	copy_all_assets();
+
+	if(!terrainPath.empty())
+		FileTools::copy_file(terrainPath, tempPath + SEP + "terrains" + SEP + "terrain.r32");
+
 	load_hpa(path);
 	printinfo(llformat("Loaded %u linksets.",mOARFileContents.size()));
 
-	printinfo("Saving linksets in OAR format (go grab a coffee)");
+	printinfo("Saving linksets in OAR format");
 	save_oar_objects();
+
+	printinfo("Compressing directories to OAR file");
+	FileTools::pack_directory_to_tgz(tempPath, outputPath);
+
 	printinfo(
 "\n	     _                  \n"
 "	  __| | ___  _ __   ___ \n"
@@ -176,20 +190,26 @@ void hpa_converter::run()
 
 void hpa_converter::create_directory_structure()
 {
-	LLFile::mkdir(outputPath, 0755);
+	LLFile::mkdir(tempPath, 0755);
 
 	//We don't actually need to do OAR 0.2 right now, just create an OAR 0.1 dir structure
-	LLFile::mkdir(outputPath + sep + "assets", 0755);
-	LLFile::mkdir(outputPath + sep + "objects", 0755);
-	LLFile::mkdir(outputPath + sep + "terrains", 0755);
+	LLFile::mkdir(tempPath + SEP + "assets", 0755);
+	LLFile::mkdir(tempPath + SEP + "objects", 0755);
+	LLFile::mkdir(tempPath + SEP + "terrains", 0755);
 }
 
 void hpa_converter::copy_all_assets()
 {
-	std::string hpa_basedir = gDirUtilp->getDirName(path) + sep;
-	copy_assets_from(hpa_basedir + "textures", "*.j2c");
-	copy_assets_from(hpa_basedir + "sculptmaps", "*.j2c");
-	copy_assets_from(hpa_basedir + "inventory", "*");
+	std::string hpa_basedir = gDirUtilp->getDirName(path) + SEP;
+
+	if(gDirUtilp->fileExists(hpa_basedir + "textures"))
+		copy_assets_from(hpa_basedir + "textures", "*.j2c");
+
+	if(gDirUtilp->fileExists(hpa_basedir + "sculptmaps"))
+		copy_assets_from(hpa_basedir + "sculptmaps", "*.j2c");
+
+	if(gDirUtilp->fileExists(hpa_basedir + "inventory"))
+		copy_assets_from(hpa_basedir + "inventory", "*");
 }
 
 
@@ -199,11 +219,11 @@ void hpa_converter::copy_assets_from(std::string source_path, std::string mask)
 	BOOL found = TRUE;
 	std::string curr_name;
 
-	source_path += sep;
+	source_path += SEP;
 
 	printinfo("copying from " + source_path);
 
-	std::string oar_asset_path = outputPath + sep + "assets" + sep;
+	std::string oar_asset_path = tempPath + SEP + "assets" + SEP;
 
 	while(found)// for every directory
 	{
@@ -212,32 +232,14 @@ void hpa_converter::copy_assets_from(std::string source_path, std::string mask)
 			std::string full_path=source_path + curr_name;
 			if(LLFile::isfile(full_path))
 			{
-				std::string new_fname = LLAssetTools::HPAtoOARName(curr_name);
+				std::string new_fname = AssetTools::HPAtoOARName(curr_name);
 
 				//check if we know about this asset type yet
 
 				if(!new_fname.empty())
 				{
 					std::string new_path = oar_asset_path + new_fname;
-					//copy the file to output dir
-					std::ifstream f1 (full_path.c_str(), std::fstream::binary);
-					std::ofstream f2 (new_path.c_str(), std::fstream::trunc|std::fstream::binary);
-
-					if(f1 && f2)
-					{
-						f2 << f1.rdbuf();
-
-						f2.close();
-						f1.close();
-					}
-					else
-					{
-						//make sure both are closed if they're open
-						if(f1) f1.close();
-						if(f2) f2.close();
-
-						llwarns << "Failed to copy " << full_path << " to " << new_path << llendl;
-					}
+					FileTools::copy_file(full_path, new_path);
 				}
 				else
 				{
@@ -245,10 +247,6 @@ void hpa_converter::copy_assets_from(std::string source_path, std::string mask)
 				}
 
 				std::cout << "=" << std::flush;
-			}
-			else
-			{
-				printinfo("This... doesn't exist?");
 			}
 		}
 	}
@@ -900,7 +898,7 @@ void hpa_converter::save_oar_objects()
 			++link_num;
 		}
 		// Create a file stream and write to it
-		std::string linkset_file_path = outputPath + sep + "objects" + sep +
+		std::string linkset_file_path = tempPath + SEP + "objects" + SEP +
 				linkset_name + "_" + pretty_position + "__" + linkset_id + ".xml";
 		llofstream out(linkset_file_path,std::ios_base::out | std::ios_base::trunc);
 		if (!out.good())
@@ -933,7 +931,7 @@ void hpa_converter::save_oar_objects()
 
 	creation_info_xml->createChild("id", FALSE)->setValue(random_archive_id.asString());
 
-	std::string archive_info_path = outputPath + sep + "archive.xml";
+	std::string archive_info_path = tempPath + SEP + "archive.xml";
 	llofstream out(archive_info_path,std::ios_base::out | std::ios_base::trunc);
 
 	if(!out.good())
@@ -1742,7 +1740,7 @@ std::string hpa_converter::pack_extra_params(LLSD extra_params)
 
 	//Opensim expects the ExtraParams to be in this format:
 	//U16 param type : U32 param data length : U8[] param data : ...
-	//Since we need the length, we use a separate packer for the param data
+	//Since we need the length, we use a SEParate packer for the param data
 	//so we can get the length, and then tack it on after
 
 	if(extra_params.has("flexible") && extra_params.has("light"))
@@ -1798,7 +1796,7 @@ std::string hpa_converter::pack_extra_params(LLSD extra_params)
 ///////////////////////
 
 //this uses the extensions as used by SLPE and may not be correct for the HPA exporter.
-LLAssetType::EType LLAssetTools::typefromExt(std::string src_filename)
+LLAssetType::EType AssetTools::typefromExt(std::string src_filename)
 {
 	std::string exten = gDirUtilp->getExtension(src_filename);
 	if (exten.empty())
@@ -1840,7 +1838,7 @@ LLAssetType::EType LLAssetTools::typefromExt(std::string src_filename)
 	}
 }
 
-std::string LLAssetTools::HPAtoOARName(std::string src_filename)
+std::string AssetTools::HPAtoOARName(std::string src_filename)
 {
 	LLAssetType::EType file_type = typefromExt(src_filename);
 	std::string base_filename = gDirUtilp->getBaseFileName(src_filename, true);
@@ -1864,7 +1862,7 @@ std::string LLAssetTools::HPAtoOARName(std::string src_filename)
 }
 
 //this is actually pretty dumb, but it does what we want, and it's short
-void pack_directory_to_tgz(std::string basedir, std::string outpath)
+void FileTools::pack_directory_to_tgz(std::string basedir, std::string outpath)
 {
 	struct archive *a;
 
@@ -1877,9 +1875,11 @@ void pack_directory_to_tgz(std::string basedir, std::string outpath)
 
 	archive_write_close(a);
 	archive_write_finish(a);
+
+	std::cout << std::endl;
 }
 
-void pack_directory(struct archive* tgz, std::string path, std::string basedir)
+void FileTools::pack_directory(struct archive* tgz, std::string path, std::string basedir)
 {
 	struct archive_entry *entry;
 	ssize_t len;
@@ -1892,15 +1892,8 @@ void pack_directory(struct archive* tgz, std::string path, std::string basedir)
 
 	while (gDirUtilp->getNextFileInDir(basedir + SEP + path, "*", curr_file, FALSE))
 	{
-		if(curr_file == "." || curr_file == "..") continue;
-
 		//e.g. /home/dongsworth/hpafiles/asim/./awesomefile.txt
-		std::string full_path;
-
-		if(path.empty())
-			full_path = basedir + SEP + curr_file;
-		else
-			full_path = basedir + SEP + path + curr_file;
+		std::string full_path = basedir + SEP + path + curr_file;
 
 		++curr_index;
 
@@ -1915,8 +1908,6 @@ void pack_directory(struct archive* tgz, std::string path, std::string basedir)
 		}
 		else
 		{
-			llinfos << full_path << llendl;
-
 			entry = archive_entry_new();
 
 			//WE DON'T NEED NO STEENKEN ACLS!
@@ -1940,6 +1931,31 @@ void pack_directory(struct archive* tgz, std::string path, std::string basedir)
 			}
 			close(fd);
 			archive_entry_free(entry);
+
+			std::cout << "=";
 		}
+	}
+}
+
+void FileTools::copy_file(std::string source, std::string dest)
+{
+	//copy the file to output dir
+	std::ifstream f1 (source.c_str(), std::fstream::binary);
+	std::ofstream f2 (dest.c_str(), std::fstream::trunc|std::fstream::binary);
+
+	if(f1 && f2)
+	{
+		f2 << f1.rdbuf();
+
+		f2.close();
+		f1.close();
+	}
+	else
+	{
+		//make sure both are closed if they're open
+		if(f1) f1.close();
+		if(f2) f2.close();
+
+		llwarns << "Failed to copy " << source << " to " << dest << llendl;
 	}
 }
