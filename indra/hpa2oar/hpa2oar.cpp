@@ -632,14 +632,14 @@ void hpa_converter::save_oar_objects()
 			F32 twist_begin = volume_params.getTwistBegin() * 100;
 			F32 twist		= volume_params.getTwist() * 100;
 			//I fucked up the HPA exporter, this is a temporary fix!
-			if (path == LL_PCODE_PATH_LINE || path == LL_PCODE_PATH_FLEXIBLE)
-			{
-			}
-			else
-			{
-				twist		*= 2;
-				twist_begin	*= 2;
-			}
+			//if (path == LL_PCODE_PATH_LINE || path == LL_PCODE_PATH_FLEXIBLE)
+			//{
+			//}
+			//else
+			//{
+			//	twist		*= 2;
+			//	twist_begin	*= 2;
+			//}
 			shape_xml->createChild("PathTwistBegin", FALSE)->setIntValue((U32)twist_begin);
 			shape_xml->createChild("PathTwist", FALSE)->setIntValue((U32)twist);
 
@@ -674,101 +674,7 @@ void hpa_converter::save_oar_objects()
 
 			object_flags_xml->setValue(llformat("%u", object_flags));
 
-			// Grab S path
-			F32 begin_s	= volume_params.getBeginS();
-			F32 end_s	= volume_params.getEndS();
-			// Compute cut and advanced cut from S and T
-			F32 begin_t = volume_params.getBeginT();
-			F32 end_t	= volume_params.getEndT();
-
-			// Cut interpretation varies based on base object type
-			if ( selected_item == "sphere" || selected_item == "torus" ||
-				 selected_item == "tube"   || selected_item == "ring" )
-			{
-				cut_begin		= begin_t;
-				cut_end			= end_t;
-				adv_cut_begin	= begin_s;
-				adv_cut_end		= end_s;
-			}
-			else
-			{
-				cut_begin       = begin_s;
-				cut_end         = end_s;
-				adv_cut_begin   = begin_t;
-				adv_cut_end     = end_t;
-			}
-			if (selected_item != "sphere")
-			{
-				// Shear
-				//<top_shear x="0" y="0" />
-				F32 shear_x = volume_params.getShearX();
-				F32 shear_y = volume_params.getShearY();
-				LLXMLNode* shear_xml = prim_xml->createChild("top_shear", FALSE);
-				shear_xml->createChild("x", TRUE)->setValue(llformat("%.5f", shear_x));
-				shear_xml->createChild("y", TRUE)->setValue(llformat("%.5f", shear_y));
-			}
-			else
-			{
-				// Dimple
-				//<dimple begin="0.0" end="1.0" />
-				LLXMLNode* shear_xml = prim_xml->createChild("dimple", FALSE);
-				shear_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", adv_cut_begin));
-				shear_xml->createChild("end", TRUE)->setValue(llformat("%.5f", adv_cut_end));
-			}
-
-			//if (selected_item == "box" || selected_item == "cylinder" || selected_item == "prism")
-			//{
-			//	// Taper
-			//	//<taper x="0" y="0" />
-			//	F32 taper_x = 1.f - volume_params.getRatioX();
-			//	F32 taper_y = 1.f - volume_params.getRatioY();
-			//	LLXMLNodePtr taper_xml = prim_xml->createChild("taper", FALSE);
-			//	taper_xml->createChild("x", TRUE)->setValue(llformat("%.5f", taper_x));
-			//	taper_xml->createChild("y", TRUE)->setValue(llformat("%.5f", taper_y));
-			//}
-			//else if (selected_item == "torus" || selected_item == "tube" || selected_item == "ring")
-			//{
-			//	// Taper
-			//	//<taper x="0" y="0" />
-			//	F32 taper_x	= volume_params.getTaperX();
-			//	F32 taper_y = volume_params.getTaperY();
-			//	LLXMLNodePtr taper_xml = prim_xml->createChild("taper", FALSE);
-			//	taper_xml->createChild("x", TRUE)->setValue(llformat("%.5f", taper_x));
-			//	taper_xml->createChild("y", TRUE)->setValue(llformat("%.5f", taper_y));
-			//	//Hole Size
-			//	//<hole_size x="0.2" y="0.35" />
-			//	F32 hole_size_x = volume_params.getRatioX();
-			//	F32 hole_size_y = volume_params.getRatioY();
-			//	LLXMLNodePtr hole_size_xml = prim_xml->createChild("hole_size", FALSE);
-			//	hole_size_xml->createChild("x", TRUE)->setValue(llformat("%.5f", hole_size_x));
-			//	hole_size_xml->createChild("y", TRUE)->setValue(llformat("%.5f", hole_size_y));
-			//	//Advanced cut
-			//	//<profile_cut begin="0" end="1" />
-			//	LLXMLNodePtr profile_cut_xml = prim_xml->createChild("profile_cut", FALSE);
-			//	profile_cut_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", adv_cut_begin));
-			//	profile_cut_xml->createChild("end", TRUE)->setValue(llformat("%.5f", adv_cut_end));
-			//	//Skew
-			//	//<skew val="0.0" />
-			//	F32 skew = volume_params.getSkew();
-			//	LLXMLNodePtr skew_xml = prim_xml->createChild("skew", FALSE);
-			//	skew_xml->createChild("val", TRUE)->setValue(llformat("%.5f", skew));
-			//	//Radius offset
-			//	//<radius_offset val="0.0" />
-			//	F32 radius_offset = volume_params.getRadiusOffset();
-			//	LLXMLNodePtr radius_offset_xml = prim_xml->createChild("radius_offset", FALSE);
-			//	radius_offset_xml->createChild("val", TRUE)->setValue(llformat("%.5f", radius_offset));
-			//}
-			////<path_cut begin="0" end="1" />
-			//LLXMLNode* path_cut_xml = prim_xml->createChild("path_cut", FALSE);
-			//path_cut_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", cut_begin));
-			//path_cut_xml->createChild("end", TRUE)->setValue(llformat("%.5f", cut_end));
-			////<twist begin="0" end="0" />
-			//LLXMLNode* twist_xml = prim_xml->createChild("twist", FALSE);
-			//twist_xml->createChild("begin", TRUE)->setValue(llformat("%.5f", twist_begin));
-			//twist_xml->createChild("end", TRUE)->setValue(llformat("%.5f", twist));
-
 			//Extra Params
-
 			std::string packed_params = "";
 
 			//the params probably aren't right yet.
