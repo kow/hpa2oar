@@ -48,9 +48,6 @@
 #include "lldatapacker.h"
 #include "llbase64.h"
 
-#include <libarchive/archive.h>
-#include <fcntl.h>
-
 #include "hpa2oar.h"
 
 #ifdef LL_WINDOWS
@@ -110,12 +107,18 @@ int main(int argv,char * argc[])
 			if(vm.count("terrain"))
 				converter.terrainPath = vm["terrain"].as<std::string>();
 
+			/*
 			LLUUID randomdir;
 			randomdir.generate();
 			converter.tempPath = gDirUtilp->getTempDir() + SEP + "hpa2oar" + SEP + randomdir.asString();
+			*/
 
+			converter.tempPath = converter.outputPath;
+
+			/*
 			if(!gDirUtilp->fileExists(gDirUtilp->getTempDir() + SEP + "hpa2oar"))
 				LLFile::mkdir(gDirUtilp->getTempDir() + SEP + "hpa2oar", 0755);
+			*/
 
 			LLFile::mkdir(converter.tempPath, 0755);
 
@@ -174,9 +177,6 @@ void hpa_converter::run()
 
 	printinfo("Saving linksets in OAR format");
 	save_oar_objects();
-
-	printinfo("Compressing directories to OAR file");
-	FileTools::pack_directory_to_tgz(tempPath, outputPath);
 
 	printinfo(
 "\n	     _                  \n"
@@ -1862,82 +1862,6 @@ std::string AssetTools::HPAtoOARName(std::string src_filename)
 
 	llwarns << "For " << src_filename << ": This asset type isn't supported yet." << llendl;
 	return std::string("");
-}
-
-//this is actually pretty dumb, but it does what we want, and it's short
-void FileTools::pack_directory_to_tgz(std::string basedir, std::string outpath)
-{
-	struct archive *a;
-
-	a = archive_write_new();
-	archive_write_set_compression_gzip(a);
-	archive_write_set_format_pax_restricted(a);
-	archive_write_open_filename(a, outpath.c_str());
-
-	pack_directory(a, "", basedir);
-
-	archive_write_close(a);
-	archive_write_finish(a);
-
-	std::cout << std::endl;
-}
-
-void FileTools::pack_directory(struct archive* tgz, std::string path, std::string basedir)
-{
-	struct archive_entry *entry;
-	ssize_t len;
-	int fd;
-
-	char buff[1000000]; //should be able to handle files around 10mb in size.
-
-	std::string curr_file;
-	int curr_index = 0;
-
-	while (gDirUtilp->getNextFileInDir(basedir + SEP + path, "*", curr_file, FALSE))
-	{
-		//e.g. /home/dongsworth/hpafiles/asim/./awesomefile.txt
-		std::string full_path = basedir + SEP + path + curr_file;
-
-		++curr_index;
-
-		//Directory? RECURSE, RECURSE!
-		if(LLFile::isdir(full_path))
-		{
-			pack_directory(tgz, path + curr_file + SEP, basedir);
-
-			//we recursed and gDirUtilp lost track of our search state, restore it
-			for(int i=0; i<curr_index;++i)
-				gDirUtilp->getNextFileInDir(basedir + SEP + path, "*", curr_file, FALSE);
-		}
-		else
-		{
-			entry = archive_entry_new();
-
-			//WE DON'T NEED NO STEENKEN ACLS!
-			llstat curr_file_stats;
-			LLFile::stat(full_path, &curr_file_stats);
-
-			archive_entry_set_pathname(entry, (path + curr_file).c_str());
-			archive_entry_set_size(entry, curr_file_stats.st_size);
-			archive_entry_set_filetype(entry, AE_IFREG);
-			archive_entry_set_perm(entry, 0644);
-
-			archive_write_header(tgz, entry);
-
-			fd = open(full_path.c_str(), O_RDONLY);
-			len = read(fd, buff, sizeof(buff));
-
-			while (len > 0)
-			{
-				archive_write_data(tgz, buff, len);
-				len = read(fd, buff, sizeof(buff));
-			}
-			close(fd);
-			archive_entry_free(entry);
-
-			std::cout << "=";
-		}
-	}
 }
 
 void FileTools::copy_file(std::string source, std::string dest)

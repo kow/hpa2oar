@@ -22,8 +22,6 @@
 #include "llthread.h"
 #include "llxmltree.h"
 #include "llassettype.h"
-#include <libarchive/archive.h>
-#include <libarchive/archive_entry.h>
 
 class hpa_converter : public LLThread
 {
@@ -68,8 +66,6 @@ public:
 class FileTools
 {
 public:
-	static void pack_directory_to_tgz(std::string basedir, std::string outpath);
-	static void pack_directory(struct archive* tgz, std::string path, std::string basedir);
 	static void copy_file(std::string source, std::string dest);
 };
 

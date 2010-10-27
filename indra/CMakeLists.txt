@@ -50,7 +50,6 @@ add_subdirectory(${LIBS_OPEN_PREFIX}llvfs)
 add_subdirectory(${LIBS_OPEN_PREFIX}llwindow)
 add_subdirectory(${LIBS_OPEN_PREFIX}llxml)
 add_subdirectory(${LIBS_OPEN_PREFIX}hpa2oar)
-add_subdirectory(${LIBS_OPEN_PREFIX}cmlibarchive)
 
 if (EXISTS ${LIBS_CLOSED_DIR}llkdu)
   add_subdirectory(${LIBS_CLOSED_PREFIX}llkdu)

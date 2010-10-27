@@ -12,8 +12,6 @@ include(LLVFS)
 include(LLInventory)
 include(Linking)
 
-include(LibArchive)
-
 include_directories(
     ${LLCOMMON_INCLUDE_DIRS}
     ${LLXML_INCLUDE_DIRS}
@@ -22,7 +20,6 @@ include_directories(
 	${LLMESSAGE_INCLUDE_DIRS}
 	${LLPRIMITIVE_INCLUDE_DIRS}
     ${LLVFS_INCLUDE_DIRS}
-	${LIBAR_INCLUDE_DIRS}
     )
 
 set(HPA2OAR_SOURCE_FILES
@@ -42,7 +39,7 @@ set_source_files_properties(${HPA2OAR_HEADER_FILES}
 list(APPEND HPA2OAR_SOURCE_FILES ${HPA2OAR_HEADER_FILES})
    
 add_executable(hpa2oar ${HPA2OAR_SOURCE_FILES})
-add_dependencies(hpa2oar llcommon archive_static llvfs llxml llmath llinventory llmessage llprimitive)
+add_dependencies(hpa2oar llcommon llvfs llxml llmath llinventory llmessage llprimitive)
 
 target_link_libraries(hpa2oar
 	${LLCOMMON_LIBRARIES}
@@ -55,9 +52,7 @@ target_link_libraries(hpa2oar
     ${viewer_LIBRARIES}
     ${BOOST_PROGRAM_OPTIONS_LIBRARY}
     ${BOOST_REGEX_LIBRARY}
-	${LIBAR_LIBRARY}
 	llmath #Wait, what? Why do I need to do this?
-	archive_static
     )
 
 add_custom_command(
