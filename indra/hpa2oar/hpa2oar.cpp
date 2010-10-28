@@ -1711,40 +1711,7 @@ LLAssetType::EType AssetTools::typefromExt(std::string src_filename)
 	if (exten.empty())
 		return LLAssetType::AT_NONE;
 
-	if(exten == "jp2" || exten == "j2k" || exten == "j2c" || exten == "texture")
-	{
-		return LLAssetType::AT_TEXTURE;
-	}
-	else if(exten == "notecard")
-	{
-		return LLAssetType::AT_NOTECARD;
-	}
-	else if(exten == "lsl" || exten == "lsltext")
-	{
-		return LLAssetType::AT_LSL_TEXT;
-	}
-	/* BELOW ARE UNTESTED */
-	else if(exten == "wav")
-	{
-		return LLAssetType::AT_SOUND;
-	}
-	else if(exten == "ogg")
-	{
-		return LLAssetType::AT_SOUND;
-	}
-	else if (exten == "animatn")
-	{
-		return LLAssetType::AT_ANIMATION;
-	}
-	else if(exten == "gesture")
-	{
-		return LLAssetType::AT_GESTURE;
-	}
-	else
-	{
-		llwarns << "Unhandled extension" << llendl;
-		return LLAssetType::AT_NONE;
-	}
+	return LLAssetType::lookup(exten);
 }
 
 std::string AssetTools::HPAtoOARName(std::string src_filename)
@@ -1762,6 +1729,13 @@ std::string AssetTools::HPAtoOARName(std::string src_filename)
 		return base_filename + "_notecard.txt";
 	case LLAssetType::AT_LSL_TEXT:
 		return base_filename + "_script.lsl";
+	case LLAssetType::AT_SOUND:
+		return base_filename + "_sound.ogg";
+	case LLAssetType::AT_ANIMATION:
+		//it has a bvh extension, but it's actually a raw animation, amazing.
+		return base_filename + "_animation.bvh";
+	case LLAssetType::AT_BODYPART:
+		return base_filename + "_bodypart.txt";
 	default:
 		break;
 	}
