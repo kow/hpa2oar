@@ -1711,6 +1711,10 @@ LLAssetType::EType AssetTools::typefromExt(std::string src_filename)
 	if (exten.empty())
 		return LLAssetType::AT_NONE;
 
+	//images are handled separately
+	if(exten == "j2c")
+		return LLAssetType::AT_TEXTURE;
+
 	return LLAssetType::lookup(exten);
 }
 
@@ -1718,8 +1722,6 @@ std::string AssetTools::HPAtoOARName(std::string src_filename)
 {
 	LLAssetType::EType file_type = typefromExt(src_filename);
 	std::string base_filename = gDirUtilp->getBaseFileName(src_filename, true);
-
-	if(file_type == LLAssetType::AT_NONE) return std::string("");
 
 	switch(file_type)
 	{
