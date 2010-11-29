@@ -559,6 +559,7 @@ void hpa_converter::save_oar_objects()
 
 				linkset_name = utf8str_substChar(linkset_name, '\\', '-');
 				linkset_name = utf8str_substChar(linkset_name, '/', '-');
+				linkset_name = utf8str_substChar(linkset_name, ':', '-');
 			}
 
 			if(prim.has("material"))
