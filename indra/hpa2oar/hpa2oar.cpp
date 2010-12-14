@@ -753,6 +753,14 @@ void hpa_converter::save_oar_objects()
 
 					//skip by undefined items
 					if(item.isUndefined()) continue;
+					
+					//check to make sure we have the files
+					if(!gDirUtilp->fileExists(gDirUtilp->getDirName(this->path) + SEP + "inventory" 
+								+ SEP + item["item_id"].asString() + "." + item["type"].asString()))
+					{
+						llinfos << "Skipping missing inventory item for asset " << item["item_id"].asString() << "." << item["type"].asString() << llendl;
+						continue;
+					}
 
 					++num_of_items;
 
@@ -762,19 +770,19 @@ void hpa_converter::save_oar_objects()
 					field_xml->createChild("Description", FALSE)->setValue(item["desc"].asString());
 					if(item.has("asset_id"))
 					{
-					   //<ItemID><Guid>673b00e8-990f-3078-9156-c7f7b4a5f86c</Guid></ItemID>
+							//<ItemID><Guid>673b00e8-990f-3078-9156-c7f7b4a5f86c</Guid></ItemID>
 						field_xml->createChild("ItemID", FALSE)->createChild("Guid", FALSE)->setValue(item["item_id"].asString());
-					   //<AssetID><Guid>673b00e8-990f-3078-9156-c7f7b4a5f86c</Guid></AssetID>
+							//<AssetID><Guid>673b00e8-990f-3078-9156-c7f7b4a5f86c</Guid></AssetID>
 						field_xml->createChild("AssetID", FALSE)->createChild("Guid", FALSE)->setValue(item["asset_id"].asString());
 					}
 					else
 					{
-						//<ItemID><Guid>673b00e8-990f-3078-9156-c7f7b4a5f86c</Guid></ItemID>
 						//welp, we don't have an asset id, assume that the backup's screwed and has been using the itemid as the assetid
 						LLUUID rand_itemid;
 						rand_itemid.generate();
+							//<ItemID><Guid>673b00e8-990f-3078-9156-c7f7b4a5f86c</Guid></ItemID>
 						field_xml->createChild("ItemID", FALSE)->createChild("Guid", FALSE)->setValue(rand_itemid.asString());
-						//<AssetID><Guid>673b00e8-990f-3078-9156-c7f7b4a5f86c</Guid></AssetID>
+							//<AssetID><Guid>673b00e8-990f-3078-9156-c7f7b4a5f86c</Guid></AssetID>
 						field_xml->createChild("AssetID", FALSE)->createChild("Guid", FALSE)->setValue(item["item_id"].asString());
 					}
 					   //<name>blah blah</name>
