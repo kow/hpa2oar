@@ -24,6 +24,7 @@ namespace hpa2oar_frontend
 
         private void button1_Click(object sender, EventArgs e)
         {
+            openFileDialog1.RestoreDirectory = true;
             openFileDialog1.Title = "Select HPA File";
             openFileDialog1.InitialDirectory = "E:";
             openFileDialog1.FileName = "";
@@ -35,6 +36,7 @@ namespace hpa2oar_frontend
 
         private void button2_Click(object sender, EventArgs e)
         {
+            saveFileDialog1.RestoreDirectory = true;
             saveFileDialog1.InitialDirectory = "E:";
             saveFileDialog1.Title = "Choose OAR Destination";
             saveFileDialog1.FileName = "untitled.oar";
@@ -46,31 +48,56 @@ namespace hpa2oar_frontend
                 label2.Text = path;
 
                 Process proc = new Process();
-                proc.StartInfo.FileName = @"hpa2oar.exe";
+                proc.StartInfo.FileName = "hpa2oar.exe";
                 proc.StartInfo.Arguments = "--hpa \"" + Chosen_File + "\" --oar \"" + path
-                    + "\\TEMP\" --terrain \"" + Chosen_RAW + "\"";
-                proc.Start();
+                    + "\\TEMP\"";// --terrain \"" + Chosen_RAW + "\"";
+                try
+                {
+                    proc.Start();
+                }
+                catch(Win32Exception err)
+                {
+                    string dummyString = err.Message; // Avoid warning message
+                    MessageBox.Show(err.Message + "\r\n" + proc.StartInfo.FileName, "Check the path.", MessageBoxButtons.OK);
+                }
                 proc.WaitForExit();
 
                 string arg = "a -ttar \"" + path + "\\TEMP\\temp.tar\" \"" + path + "\\TEMP\\*\"";
 
                 Process tar = new Process();
-                tar.StartInfo.FileName = @"7za.exe";
+                tar.StartInfo.FileName = "7za.exe";
                 tar.StartInfo.Arguments = arg;
-                tar.Start();
+                try
+                {
+                    tar.Start();
+                }
+                catch (Win32Exception err)
+                {
+                    string dummyString = err.Message; // Avoid warning message
+                    MessageBox.Show(err.Message + "\r\n" + tar.StartInfo.FileName, "Check the path.", MessageBoxButtons.OK);
+                }
                 tar.WaitForExit();
 
                 arg = "a -tgzip \"" + Saved_File + "\" \"" + path + "\\TEMP\\temp.tar";
 
                 Process gzip = new Process();
-                gzip.StartInfo.FileName = @"7za.exe";
+                gzip.StartInfo.FileName = "7za.exe";
                 gzip.StartInfo.Arguments = arg;
-                gzip.Start();
+                try
+                {
+                    gzip.Start();
+                }
+                catch (Win32Exception err)
+                {
+                    string dummyString = err.Message; // Avoid warning message
+                    MessageBox.Show(err.Message + "\r\n" + gzip.StartInfo.FileName, "Check the path.", MessageBoxButtons.OK);
+                }
             }
         }
 
         private void button3_Click(object sender, EventArgs e)
         {
+            openFileDialog1.RestoreDirectory = true;
             openFileDialog1.Title = "Select RAW File";
             string path = Path.GetDirectoryName(Chosen_File);
             openFileDialog1.InitialDirectory = path;
